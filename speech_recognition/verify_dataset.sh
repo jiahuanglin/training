@@ -10,5 +10,5 @@ cksum data-LibriSpeech-ref.tar > data-LibriSpeech-cksum.out
 cmp --silent data-LibriSpeech-cksum.out data/data-LibriSpeech-ref-cksum.out && echo 'Dataset Checksum Passed.' || echo 'WARNING: Dataset Checksum Failed.'
 
 #remove generated checksum and tar
-rm data-LibriSpeech-ref.tar
-rm data-LibriSpeech-cksum.out
+# rm data-LibriSpeech-ref.tar
+# rm data-LibriSpeech-cksum.out
