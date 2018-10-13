@@ -159,3 +159,10 @@ Word Error Rate (WER) across all words in the output text of all samples in the 
 WER of 23.0.
 ### Evaluation
 All training samples are examined per epoch, and at the end of each epoch the model WER is evaluated on the validation set.
+
+
+### TODO
+
+- add two more testing dataset to workflow
+    - LibriSpeech already has an "other" dataset with noisy speech, in addition to its clean data. http://www.openslr.org/12/
+    - "Common Voice" dataset that Mozilla has been collecting through crowd-sourcing. https://voice.mozilla.org/en/new
