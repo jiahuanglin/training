@@ -46,9 +46,9 @@ RUN apt-get update && apt-get install --yes --no-install-recommends cmake \
 ENV CUDA_HOME "/usr/local/cuda"
 
 # install warp-ctc
-RUN git clone https://github.com/SeanNaren/warp-ctc.git && \
+RUN git clone https://github.com/ahsueh1996/warp-ctc.git && \
     cd warp-ctc && \
-    mkdir -p build && cd build && cmake .. && make && \
+    mkdir -p build && cd build && cmake .. && make VERBOSE=1 && \
     cd ../pytorch_binding && python setup.py install
 
 # install pytorch audio
