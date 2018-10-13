@@ -160,8 +160,8 @@ def main():
         start_iter = 0
         avg_training_loss = 0
     if params.cuda:
-        # model         = torch.nn.DataParallel(model).cuda()
-        model         = torch.nn.parallel.DistributedDataParallel(model).cuda()
+        model         = torch.nn.DataParallel(model).cuda()
+        # model         = torch.nn.parallel.DistributedDataParallel(model).cuda()
 
     print(model)
     print("Number of parameters: %d" % DeepSpeech.get_param_size(model))
