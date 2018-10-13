@@ -234,7 +234,8 @@ class DeepSpeech(nn.Module):
                     bn_weights = bn_weights)
         model.load_state_dict(package['state_dict'])
         if cuda:
-            model = torch.nn.DataParallel(model).cuda()
+            # model = torch.nn.DataParallel(model).cuda()
+            model = torch.nn.parallel.DistributedDataParallel(model).cuda()
         return model
 
     @staticmethod
