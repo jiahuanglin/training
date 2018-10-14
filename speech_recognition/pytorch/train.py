@@ -236,7 +236,7 @@ def main():
             # del loss
             # del out
 
-            if (i+1) % 5000 == 0:
+            if (i+1) % 2000 == 0:
                 print('Training Summary Epoch: [{0}]\t'
                       'Average Loss {loss:.3f}\t'
                       .format(epoch + 1, loss=avg_loss/5000, ))

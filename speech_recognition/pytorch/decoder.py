@@ -48,7 +48,7 @@ class Decoder(object):
         return strings
 
     def _convert_to_string(self, sequence, sizes):
-        return ''.join([self.int_to_char[sequence[i]] for i in range(sizes)])
+        return ''.join([self.int_to_char[sequence[i].item()] for i in range(sizes)])
 
     def process_strings(self, sequences, remove_repetitions=False):
         """
