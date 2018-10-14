@@ -236,7 +236,7 @@ def main():
             # del loss
             # del out
 
-            if (i+1) % 2000 == 0:
+            if (i+1) % 10000 == 0:
                 print('Training Summary Epoch: [{0}]\t'
                       'Average Loss {loss:.3f}\t'
                       .format(epoch + 1, loss=avg_loss/5000, ))
@@ -272,6 +272,7 @@ def main():
                                                     wer_results=wer_results, cer_results=cer_results)
                                , args.model_path)
                     best_wer = wer
+                model.train()
 
             del loss
             del out
@@ -315,6 +316,7 @@ def main():
             best_wer = wer
 
         avg_loss = 0
+        model.train()
 
         #If set to exit at a given accuracy, exit
         if params.exit_at_acc and (best_wer <= args.acc):
