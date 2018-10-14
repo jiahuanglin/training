@@ -111,9 +111,9 @@ def main():
     test_dataset = SpectrogramDataset(audio_conf=audio_conf, manifest_filepath=params.val_manifest, labels=labels,
                                       normalize=True, augment=False)
     train_loader = AudioDataLoader(train_dataset, batch_size=params.batch_size,
-                                   num_workers=2)
+                                   num_workers=1)
     test_loader = AudioDataLoader(test_dataset, batch_size=params.batch_size,
-                                  num_workers=2)
+                                  num_workers=1)
 
     rnn_type = params.rnn_type.lower()
     assert rnn_type in supported_rnns, "rnn_type should be either lstm, rnn or gru"
