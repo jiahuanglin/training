@@ -101,7 +101,7 @@ class BatchRNN(nn.Module):
 
         if self.bidirectional:
             x = x.view(x.size(0), x.size(1), 2, -1).sum(2).view(x.size(0), x.size(1), -1)  # (TxNxH*2) -> (TxNxH) by sum
-        self.rnn.flatten_parameters()
+        # self.rnn.flatten_parameters()
         return x
 
 
