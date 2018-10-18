@@ -12,6 +12,10 @@ import torch
 from torch.autograd import Variable
 from warpctc_pytorch import CTCLoss
 
+### Distributed imports ###
+import torch.distributed as dist
+import torch.utils.data.distributed
+
 import torch.nn.functional as F
 
 ### Import Data Utils ###
@@ -35,12 +39,15 @@ parser.add_argument('--save_folder', default='models/', help='Location to save e
 parser.add_argument('--model_path', default='models/deepspeech_final.pth.tar',
                     help='Location to save best validation model')
 parser.add_argument('--continue_from', default='', help='Continue from checkpoint model')
-
 parser.add_argument('--seed', default=0xdeadbeef, type=int, help='Random Seed')
-
 parser.add_argument('--acc', default=23.0, type=float, help='Target WER')
-
 parser.add_argument('--start_epoch', default=-1, type=int, help='Number of epochs at which to start from')
+parser.add_argument('--world_size', default=1, type=int, help='To train on a cluster of n nodes, set world_size to n')
+parser.add_argument('--dist_backend', default='nccl', help='Choose nccl to have multi gpu cluster support')
+parser.add_argument('--dist_url', default='tcp://127.0.0.1:1550')
+parser.add_argument('--node_rank', default=0, help='Rank of this process')
+parser.add_argument('--gpu_rank', default=None, help='Sets GPU for the process')
+
 
 def to_np(x):
     return x.data.cpu().numpy()
@@ -66,6 +73,16 @@ class AverageMeter(object):
 
 def main():
     args = parser.parse_args()
+
+    ### Distribution code ###
+    distributed = args.world_size > 1
+    is_dist_master = True
+    if distributed:
+        if args.gpu_rank:
+            torch.cuda.set_device(int(args.gpu_rank))
+        dist.init_process_group(backend=args.dist_backend, init_method=args.dist_url,
+                                world_size=args.world_size, rank=args.node_rank)
+        is_dist_master = (args.node_rank==0)     # Only the master, the main proc will save models
 
     torch.manual_seed(args.seed)
     torch.cuda.manual_seed_all(args.seed)
@@ -165,7 +182,12 @@ def main():
         avg_training_loss = 0
     if params.cuda:
         model         = torch.nn.DataParallel(model).cuda()
-        # model         = torch.nn.parallel.DistributedDataParallel(model).cuda()
+
+    ### Distributed code ###
+    if distributed:
+        model         = torch.nn.parallel.DistributedDataParallel(model,
+                                                                  device_ids=(int(args.gpu_rank),) if args.rank else None)
+
 
     print(model)
     print("Number of parameters: %d" % DeepSpeech.get_param_size(model))
@@ -203,8 +225,12 @@ def main():
 
             loss = loss / inputs.size(0)  # average the loss by minibatch
 
-            loss_sum = loss.data.sum()
             inf = float("inf")
+            ### Distributed code ###
+            if distributed:
+                loss_sum = reduce_tensor(loss, args.world_size)[0]
+            else:
+                loss_sum = loss.data.sum()
             if loss_sum == inf or loss_sum == -inf:
                 print("WARNING: received an inf loss, setting loss value to 0")
                 loss_value = 0
