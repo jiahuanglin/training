@@ -42,6 +42,8 @@ parser.add_argument('--acc', default=23.0, type=float, help='Target WER')
 
 parser.add_argument('--start_epoch', default=-1, type=int, help='Number of epochs at which to start from')
 
+parser.add_argument('--use_set', default="ov", help='ov = OpenVoice test set, libri = Librispeech val set')
+
 def to_np(x):
     return x.data.cpu().numpy()
 
@@ -106,16 +108,18 @@ def main():
                       noise_prob=params.noise_prob,
                       noise_levels=(params.noise_min, params.noise_max))
 
-    val_batch_size = min(8,params.batch_size_val)
-    print("Using bs={} for validation. Parameter found was {}".format(val_batch_size,params.batch_size_val))
+    if args.use_set == 'libri':
+        testing_manifest = params.val_manifest
+    else:
+        testing_manifest = params.test_manifest
 
-    train_dataset = SpectrogramDataset(audio_conf=audio_conf, manifest_filepath=params.train_manifest, labels=labels,
+    train_dataset = SpectrogramDataset(audio_conf=audio_conf, manifest_filepath=params.val_manifest, labels=labels,
                                        normalize=True, augment=params.augment)
-    test_dataset = SpectrogramDataset(audio_conf=audio_conf, manifest_filepath=params.val_manifest, labels=labels,
+    test_dataset = SpectrogramDataset(audio_conf=audio_conf, manifest_filepath=testing_manifest, labels=labels,
                                       normalize=True, augment=False)
     train_loader = AudioDataLoader(train_dataset, batch_size=params.batch_size,
                                    num_workers=1)
-    test_loader = AudioDataLoader(test_dataset, batch_size=val_batch_size,
+    test_loader = AudioDataLoader(test_dataset, batch_size=params.batch_size,
                                   num_workers=1)
 
     rnn_type = params.rnn_type.lower()
@@ -140,7 +144,6 @@ def main():
         print("Loading checkpoint model %s" % args.continue_from)
         package = torch.load(args.continue_from)
         model.load_state_dict(package['state_dict'])
-	model = model.cuda()
         optimizer.load_state_dict(package['optim_dict'])
         start_epoch = int(package.get('epoch', 1)) - 1  # Python index start at 0 for training
         start_iter = package.get('iteration', None)
@@ -157,7 +160,6 @@ def main():
         loss_results[:start_epoch], cer_results[:start_epoch], wer_results[:start_epoch] = package['loss_results'][:start_epoch], package[ 'cer_results'][:start_epoch], package['wer_results'][:start_epoch]
         print(loss_results)
         epoch = start_epoch
-
     else:
         avg_loss = 0
         start_epoch = 0
@@ -176,9 +178,10 @@ def main():
     ctc_time = AverageMeter()
 
     for epoch in range(start_epoch, params.epochs):
-        model.train()
+        # model.train()
         end = time.time()
         for i, (data) in enumerate(train_loader, start=start_iter):
+            break
             if i == len(train_loader):
                 break
             inputs, targets, input_percentages, target_sizes = data
@@ -215,7 +218,6 @@ def main():
             losses.update(loss_value, inputs.size(0))
 
             # compute gradient
-            print(torch.cuda.memory_allocated())
             optimizer.zero_grad()
             loss.backward()
 
@@ -241,42 +243,30 @@ def main():
             # del loss
             # del out
 
-            if (i+1) % int((len(train_loader)/4)) == 0:
+            if (i+1) % 10000 == 0:
                 print('Training Summary Epoch: [{0}]\t'
                       'Average Loss {loss:.3f}\t'
                       .format(epoch + 1, loss=avg_loss/5000, ))
 
                 start_iter = 0  # Reset start iteration for next epoch
                 total_cer, total_wer = 0, 0
-                
-                if args.checkpoint:
-                    file_path = '%s/deepspeech_%d_temp.pth.tar' % (save_folder, epoch + 1)
-                    torch.save(DeepSpeech.serialize(model, optimizer=optimizer, epoch=epoch, loss_results=loss_results,
-                                                    wer_results=999, cer_results=999),
-                               file_path)
-                
-                do_save = True
-                try: 
-                    model.eval()
-                    wer, cer = eval_model(model, test_loader, decoder)
-                except RuntimeError as e:
-                    print("skipping eval model checkpoint.... ")
-                    do_save = False
+                model.eval()
+
+                wer, cer = eval_model(model, test_loader, decoder)
 
                 loss_results[epoch] = avg_loss
                 wer_results[epoch] = wer
                 cer_results[epoch] = cer
-                print('Validation Summary Epoch: [{0}]\t'
+                print('Test Summary Epoch: [{0}]\t'
                       'Average WER {wer:.3f}\t'
                       'Average CER {cer:.3f}\t'.format(
-                    epoch + 1, wer=wer, cer=cer))
+                    epoch, wer=wer, cer=cer))
 
-                if args.checkpoint and do_save:
+                if args.checkpoint:
                     file_path = '%s/deepspeech_%d.pth.tar' % (save_folder, epoch + 1)
                     torch.save(DeepSpeech.serialize(model, optimizer=optimizer, epoch=epoch, loss_results=loss_results,
                                                     wer_results=wer_results, cer_results=cer_results),
                                file_path)
-
                 # anneal lr
                 optim_state = optimizer.state_dict()
                 optim_state['param_groups'][0]['lr'] = optim_state['param_groups'][0]['lr'] / params.learning_anneal
@@ -294,11 +284,15 @@ def main():
             del loss
             del out
 
-        avg_loss /= len(train_loader)
+        #avg_loss /= len(train_loader)
 
-        print('Training Summary Epoch: [{0}]\t'
-            'Average Loss {loss:.3f}\t'
-            .format( epoch + 1, loss=avg_loss, ))
+        #print('Training Summary Epoch: [{0}]\t'
+        #    'Average Loss {loss:.3f}\t'
+        #    .format( epoch + 1, loss=avg_loss, ))
+
+        #################################################################################################################
+        #                    The test script only really cares about this section.
+        #################################################################################################################
 
         start_iter = 0  # Reset start iteration for next epoch
         total_cer, total_wer = 0, 0
@@ -314,27 +308,27 @@ def main():
               'Average CER {cer:.3f}\t'.format(
             epoch + 1, wer=wer, cer=cer))
 
-        if args.checkpoint:
-            file_path = '%s/deepspeech_%d.pth.tar' % (save_folder, epoch + 1)
-            torch.save(DeepSpeech.serialize(model, optimizer=optimizer, epoch=epoch, loss_results=loss_results,
-                                            wer_results=wer_results, cer_results=cer_results),
-                       file_path)
+        #if args.checkpoint:
+        #    file_path = '%s/deepspeech_%d.pth.tar' % (save_folder, epoch + 1)
+        #    torch.save(DeepSpeech.serialize(model, optimizer=optimizer, epoch=epoch, loss_results=loss_results,
+        #                                    wer_results=wer_results, cer_results=cer_results),
+        #               file_path)
         # anneal lr
         optim_state = optimizer.state_dict()
         optim_state['param_groups'][0]['lr'] = optim_state['param_groups'][0]['lr'] / params.learning_anneal
         optimizer.load_state_dict(optim_state)
         print('Learning rate annealed to: {lr:.6f}'.format(lr=optim_state['param_groups'][0]['lr']))
 
-        if best_wer is None or best_wer > wer:
-            print("Found better validated model, saving to %s" % args.model_path)
-            torch.save(DeepSpeech.serialize(model, optimizer=optimizer, epoch=epoch, loss_results=loss_results,
-                                            wer_results=wer_results, cer_results=cer_results)
-                       , args.model_path)
-            best_wer = wer
+        #if best_wer is None or best_wer > wer:
+        #    print("Found better validated model, saving to %s" % args.model_path)
+        #    torch.save(DeepSpeech.serialize(model, optimizer=optimizer, epoch=epoch, loss_results=loss_results,
+        #                                    wer_results=wer_results, cer_results=cer_results)
+        #               , args.model_path)
+        #    best_wer = wer
 
         avg_loss = 0
-        model.train()
-
+        #model.train()
+        break
         #If set to exit at a given accuracy, exit
         if params.exit_at_acc and (best_wer <= args.acc):
             break

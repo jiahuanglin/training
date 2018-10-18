@@ -22,6 +22,8 @@ cuda = True
 labels_path    = '../labels.json' #Contains all characters for prediction
 train_manifest = '../libri_train_manifest.csv' #relative path to train manifest is download_dataset is used
 val_manifest = '../libri_val_manifest.csv' #relative path to val manifest is download_dataset is used
+#test_manifest = '../libri_test_manifest.csv'	# Librispeech test set NON EXISTENT
+test_manifest = '../cv-valid-test_manifest.csv' # OpenVoice test set
 
 # Model parameters
 hidden_size   = 2560 # Hidden size of RNNs
@@ -32,11 +34,12 @@ rnn_act_type  = 'tanh' #Type of the activation within RNN. tanh | relu are suppo
 
 # Training parameters
 epochs          = 10 # Number of training epochs PAPER = 20
-learning_anneal = 1.1 # Annealing applied to learning rate every epoch PAPER = 1.2
+learning_anneal = 1.2 # Annealing applied to learning rate every epoch PAPER = 1.2
 lr              = 0.0001 # initial learning rate PAPER = [1E-4, 6E-4]
-momentum        = 0.9 # momentum PAPER = .99
+momentum        = 0.99 # momentum PAPER = .99
 max_norm        = 400 # Norm cutoff to prevent explosion of gradients PAPER = 400
 l2              = 0 # L2 regularization
-batch_size      = 8 #Batch size for training PAPER = 512-1024, 64 for other tests
+batch_size      = 16 # Batch size for training PAPER = 512-1024, 64 for other tests
+batch_size_val  = 8  # Batch size for validation... this value is saturated by trian script
 augment         = True # Use random tempo and gain perturbations
 exit_at_acc     = True # Exit at given target accuracy
