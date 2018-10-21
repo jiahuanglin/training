@@ -215,7 +215,7 @@ def main():
             losses.update(loss_value, inputs.size(0))
 
             # compute gradient
-            print(torch.cuda.memory_allocated())
+            # print(torch.cuda.memory_allocated())
             optimizer.zero_grad()
             loss.backward()
 
