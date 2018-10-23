@@ -42,6 +42,8 @@ parser.add_argument('--acc', default=23.0, type=float, help='Target WER')
 
 parser.add_argument('--start_epoch', default=-1, type=int, help='Number of epochs at which to start from')
 
+parser.add_argument('--checks_per_epoch', default=4, type=int, help='Number of checkpoints to evaluate and save per epoch')
+
 def to_np(x):
     return x.data.cpu().numpy()
 
@@ -69,6 +71,8 @@ def main():
 
     torch.manual_seed(args.seed)
     torch.cuda.manual_seed_all(args.seed)
+
+    args.checks_per_epoch = max(1,args.checks_per_epoch)
 
     if params.rnn_type == 'gru' and params.rnn_act_type != 'tanh':
       print("ERROR: GRU does not currently support activations other than tanh")
@@ -241,7 +245,7 @@ def main():
             # del loss
             # del out
 
-            if (i+1) % int((len(train_loader)/4)) == 0:
+            if (i+1) % int((len(train_loader)/args.checks_per_epoch)) == 0:
                 print('Training Summary Epoch: [{0}]\t'
                       'Average Loss {loss:.3f}\t'
                       .format(epoch + 1, loss=avg_loss/5000, ))
