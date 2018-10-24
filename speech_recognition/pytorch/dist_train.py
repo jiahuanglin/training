@@ -47,7 +47,7 @@ parser.add_argument('--dist_backend', default='tcp', help='Choose nccl to have m
 parser.add_argument('--dist_url', default='127.0.0.1')
 parser.add_argument('--dist_port', default='5050')
 parser.add_argument('--node_rank', default=0, type=int,  help='Rank of this process')
-parser.add_argument('--gpu_rank', default=None, help='Sets GPU for the process')
+parser.add_argument('--gpu_rank', default=None, type=int, help='Sets GPU for the process')
 parser.add_argument('--group', default='EcosystemDS2', help='Sets a groupname to identify the dist_train proc')
 
 
