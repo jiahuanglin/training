@@ -82,9 +82,11 @@ def main():
     if distributed:
         if args.gpu_rank:
             torch.cuda.set_device(int(args.gpu_rank))
+        print("Waiting for process to join!")
         dist.init_process_group(backend=args.dist_backend, init_method="tcp://{}:{}".format(args.dist_url,args.dist_port),
                                 world_size=args.world_size, group_name=args.group, rank=args.node_rank)
         #dist.init_process_group(backend='tcp',init_method='tcp://127.0.0.1:2020',rank=args.node_rank,world_size=args.world_size)
+        
         is_dist_master = (args.node_rank==0)     # Only the master, the main proc will save models
 
     torch.manual_seed(args.seed)
