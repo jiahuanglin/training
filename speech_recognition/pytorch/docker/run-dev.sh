@@ -2,6 +2,7 @@
 
 nvidia-docker run \
   --shm-size 64G \
+  --network host \
   -v /home/$USER/github/training/speech_recognition:/home/jacob/github/training/speech_recognition:rw \
   -v /scratch:/scratch:rw \
   -v /etc/passwd:/etc/passwd:ro \
