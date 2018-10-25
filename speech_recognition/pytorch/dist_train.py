@@ -191,7 +191,7 @@ def main():
     ### Distributed code ###
     if distributed:
         model         = torch.nn.parallel.DistributedDataParallel(model,
-                                                                  device_ids=(int(args.gpu_rank),) if args.rank else None)
+                                                                  device_ids=(int(args.gpu_rank),) if args.node_rank else None)
 
 
     print(model)
