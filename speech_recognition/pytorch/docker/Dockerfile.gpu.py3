@@ -8,6 +8,7 @@ WORKDIR /tmp
 RUN apt-get update && apt-get install -y \
   python3 \
   python3-pip \
+  python3-setuptools \
   sox \
   libsox-dev \
   libsox-fmt-all \
@@ -35,6 +36,7 @@ RUN pip3 install h5py \
                 torch==0.4.1 \
                 torchvision \
                 cffi \
+		onnx \
                 python-Levenshtein \
                 librosa \
                 wget \
@@ -46,19 +48,24 @@ RUN apt-get update && apt-get install --yes --no-install-recommends cmake \
 ENV CUDA_HOME "/usr/local/cuda"
 
 # install warp-ctc
-RUN git clone https://github.com/ahsueh1996/warp-ctc.git && \
-    cd warp-ctc && git checkout pytorch_bindings && \
-    mkdir -p build && cd build && cmake .. && make VERBOSE=1 && \
+# RUN git clone https://github.com/ahsueh1996/warp-ctc.git && \
+#    cd warp-ctc && git checkout pytorch_bindings && \
+#    mkdir -p build && cd build && cmake .. && make VERBOSE=1 && \
+#    cd ../pytorch_binding && python3 setup.py install
+RUN git clone https://github.com/SeanNaren/warp-ctc.git && \
+    cd warp-ctc && \
+    mkdir -p build && cd build && cmake .. && make && \
     cd ../pytorch_binding && python3 setup.py install
 
 # install pytorch audio
 RUN apt-get install -y sox libsox-dev libsox-fmt-all
 RUN git clone https://github.com/pytorch/audio.git
-# RUN cd audio; python setup.py install # Had troubles with pytorch
-RUN cd audio; git reset --hard 67564173db19035329f21caa7d2be986c4c23797; python setup.py install
+RUN cd audio; python3 setup.py install 
+# Had troubles with pytorch
+# RUN cd audio; git reset --hard 67564173db19035329f21caa7d2be986c4c23797; python setup.py install
 
 # install ctcdecode
 RUN git clone --recursive https://github.com/parlance/ctcdecode.git
-RUN cd ctcdecode; pip install .
+RUN cd ctcdecode; pip3 install .
 
 ENV SHELL /bin/bash

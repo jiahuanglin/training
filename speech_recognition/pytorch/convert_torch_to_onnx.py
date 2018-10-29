@@ -17,7 +17,7 @@ print(platform.python_version())
 print(torch.__version__)
 from torch import nn
 import torch.utils.model_zoo as model_zoo
-# import torch.onnx
+import torch.onnx
 import onnx
 from torch.autograd import Variable
 from warpctc_pytorch import CTCLoss
@@ -34,8 +34,8 @@ from model import DeepSpeech, supported_rnns
 from torch._C._onnx import OperatorExportTypes 
 
 import params
-#print("FORCE CPU...")
-#params.cuda = False
+print("FORCE CPU...")
+params.cuda = False
 
 ###########################################################
 # Comand line arguments, handled by params except seed    #
@@ -190,19 +190,23 @@ def main():
     target_sizes = Variable(target_sizes, requires_grad=False)
     targets = Variable(targets, requires_grad=False)
     # x = torch.randn(params.batch_size, 1, 224, 224, requires_grad=True)
-    x = inputs
 
     if params.cuda:
         inputs = inputs.cuda()
 
+    x = inputs
+
     # Export the model
     onnx_file_path = osp.join(osp.dirname(args.continue_from),osp.basename(args.continue_from).split('.')[0]+".onnx")
     print("Saving new ONNX model to: {}".format(onnx_file_path))
-    torch_out = torch.onnx._export(model,                   # model being run
-                                   x,                       # model input (or a tuple for multiple inputs)
-                                   onnx_file_path,          # where to save the model (can be a file or file-like object)
-                                   export_params=True,      # store the trained parameter weights inside the model file
-                                   operator_export_type = OperatorExportTypes.ONNX_ATEN)
+    torch.onnx.export(model,                   # model being run
+                      inputs,                       # model input (or a tuple for multiple inputs)
+                      #"deepspeech2.onnx",
+		       onnx_file_path,          # where to save the model (can be a file or file-like object)
+                       export_params=True,      # store the trained parameter weights inside the model file
+                       verbose=False)
+                       #operator_export_type = OperatorExportTypes.ONNX_ATEN_FALLBACK)
+				   			    # operator_export_type = OperatorExportTypes.ONNX_ATEN)
 
 
 if __name__=="__main__":
