@@ -201,12 +201,9 @@ def main():
     print("Saving new ONNX model to: {}".format(onnx_file_path))
     torch.onnx.export(model,                   # model being run
                       inputs,                       # model input (or a tuple for multiple inputs)
-                      #"deepspeech2.onnx",
-		       onnx_file_path,          # where to save the model (can be a file or file-like object)
-                       export_params=True,      # store the trained parameter weights inside the model file
-                       verbose=False)
-                       #operator_export_type = OperatorExportTypes.ONNX_ATEN_FALLBACK)
-				   			    # operator_export_type = OperatorExportTypes.ONNX_ATEN)
+		              onnx_file_path,          # where to save the model (can be a file or file-like object)
+                      export_params=True,      # store the trained parameter weights inside the model file
+                      verbose=False)
 
 
 if __name__=="__main__":
