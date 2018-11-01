@@ -46,6 +46,9 @@ parser.add_argument('--use_set', default="libri", help='ov = OpenVoice test set,
 
 parser.add_argument('--cpu', default=0, type=int)
 
+parser.add_argument('--hold_idx', default=-1, type=int, help='input idx to hold the test dataset at')
+
+
 def to_np(x):
     return x.data.cpu().numpy()
 
@@ -114,10 +117,11 @@ def main():
                       noise_levels=(params.noise_min, params.noise_max))
 
     if args.use_set == 'libri':
-        testing_manifest = params.val_manifest
+        testing_manifest = params.val_manifest + ("_held" if args.hold_idx >=0 else "")
     else:
         testing_manifest = params.test_manifest
 
+    print("Testing on: {}".format(testing_manifest))
     train_dataset = SpectrogramDataset(audio_conf=audio_conf, manifest_filepath=params.val_manifest, labels=labels,
                                        normalize=True, augment=params.augment)
     test_dataset = SpectrogramDataset(audio_conf=audio_conf, manifest_filepath=testing_manifest, labels=labels,
@@ -303,7 +307,7 @@ def main():
         total_cer, total_wer = 0, 0
         model.eval()
 
-        wer, cer = eval_model_verbose( model, test_loader, decoder, params.cuda, 10, 10)
+        wer, cer = eval_model_verbose( model, test_loader, decoder, params.cuda)
 
         loss_results[epoch] = avg_loss
         wer_results[epoch] = wer
