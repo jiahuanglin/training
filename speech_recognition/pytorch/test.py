@@ -24,7 +24,7 @@ from model import DeepSpeech, supported_rnns
 
 import params
 
-from eval_model import  eval_model
+from eval_model import  eval_model_verbose
 
 ###########################################################
 # Comand line arguments, handled by params except seed    #
@@ -42,7 +42,9 @@ parser.add_argument('--acc', default=23.0, type=float, help='Target WER')
 
 parser.add_argument('--start_epoch', default=-1, type=int, help='Number of epochs at which to start from')
 
-parser.add_argument('--use_set', default="ov", help='ov = OpenVoice test set, libri = Librispeech val set')
+parser.add_argument('--use_set', default="libri", help='ov = OpenVoice test set, libri = Librispeech val set')
+
+parser.add_argument('--cpu', default=0, type=int)
 
 def to_np(x):
     return x.data.cpu().numpy()
@@ -68,6 +70,9 @@ class AverageMeter(object):
 
 def main():
     args = parser.parse_args()
+
+    params.cuda = not bool(args.cpu)
+    print("Use cuda: {}".format(params.cuda))
 
     torch.manual_seed(args.seed)
     torch.cuda.manual_seed_all(args.seed)
@@ -298,7 +303,7 @@ def main():
         total_cer, total_wer = 0, 0
         model.eval()
 
-        wer, cer = eval_model( model, test_loader, decoder)
+        wer, cer = eval_model_verbose( model, test_loader, decoder, params.cuda, 10, 10)
 
         loss_results[epoch] = avg_loss
         wer_results[epoch] = wer
