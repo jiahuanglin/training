@@ -88,8 +88,7 @@ def eval_model_verbose(model, test_loader, decoder, cuda, n_trials=1):
         model.eval()
         batch_time = AverageMeter()
         for i, (data) in enumerate(test_loader):  # test
-            trial_i = 1
-            while trial_i <= n_trials:
+            if i < n_trials:
             	end = time.time()
                 inputs, targets, input_percentages, target_sizes = data
                 inputs = Variable(inputs, volatile=False)
@@ -120,16 +119,17 @@ def eval_model_verbose(model, test_loader, decoder, cuda, n_trials=1):
 		print('[{0}/{1}]\t'
 		      'Time {batch_time.val} ({batch_time.avg:.3f})'
                       '50%|99% {2} | {3}\t'.format(
-		      (i + 1), len(test_loader), np.percentile(batch_time.array, 50),
+		      (i + 1), min(n_trials, len(test_loader)), np.percentile(batch_time.array, 50),
                       np.percentile(batch_time.array, 99), batch_time=batch_time))
-                trial_i += 1
 
-            if cuda:
-	        torch.cuda.synchronize()
-            del out
-        wer = total_wer / len(test_loader.dataset)
-        cer = total_cer / len(test_loader.dataset)
+                if cuda:
+	            torch.cuda.synchronize()
+                del out
+            else:
+                break
+        wer = total_wer / min(n_trials,len(test_loader.dataset))
+        cer = total_cer / min(n_trials,len(test_loader.dataset))
         wer *= 100
         cer *= 100
 
-        return wer, cer
+        return wer, cer, batch_time

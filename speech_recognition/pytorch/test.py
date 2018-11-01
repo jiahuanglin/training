@@ -2,6 +2,7 @@ import argparse
 import errno
 import json
 import os
+import os.path as osp
 import time
 
 import sys
@@ -48,6 +49,8 @@ parser.add_argument('--cpu', default=0, type=int)
 
 parser.add_argument('--hold_idx', default=-1, type=int, help='input idx to hold the test dataset at')
 
+parser.add_argument('--hold_sec', default=1, type=float)
+
 parser.add_argument('--batch_size_val', default=-1, type=int)
 
 
@@ -72,6 +75,16 @@ class AverageMeter(object):
         self.count += n
         self.avg = self.sum / self.count
 
+def make_file(filename,data=None):
+    f = open(filename,"w+")
+    f.close()
+    if data:
+        write_line(filename,data)
+
+def write_line(filename,msg):
+    f = open(filename,"a")
+    f.write(msg)
+    f.close()
 
 def main():
     args = parser.parse_args()
@@ -312,7 +325,23 @@ def main():
         total_cer, total_wer = 0, 0
         model.eval()
 
-        wer, cer = eval_model_verbose( model, test_loader, decoder, params.cuda)
+        wer, cer, trials = eval_model_verbose( model, test_loader, decoder, params.cuda, 200)
+        root = os.getcwd()
+        outfile = osp.join(root, "inference_bs{}_i{}_gpu{}.csv".format(params.batch_size_val, args.hold_idx, params.cuda))
+        print("Exporting inference to: {}".format(outfile))
+        make_file(outfile)
+        write_line(outfile, "batch times pre normalized by hold_sec =,{}\n".format(args.hold_sec))
+        write_line(outfile, "wer, {}\n".format(wer))
+        write_line(outfile, "cer, {}\n".format(cer))
+        write_line(outfile, "bs, {}\n".format(params.batch_size_val))
+        write_line(outfile, "hold_idx, {}\n".format(args.hold_idx))
+        write_line(outfile, "cuda, {}\n".format(params.cuda))
+        write_line(outfile, "avg batch time, {}\n".format(trials.avg/args.hold_sec))
+        write_line(outfile, "99%-tile latency, {}\n".format(np.percentile(trials.array,99)/args.hold_sec))
+        write_line(outfile, "through put, {}\n".format(params.batch_size_val/trials.avg*args.hold_sec))
+        write_line(outfile, "data\n")
+        for trial in trials.array:
+            write_line(outfile, "{}\n".format(trial/args.hold_sec))
 
         loss_results[epoch] = avg_loss
         wer_results[epoch] = wer
