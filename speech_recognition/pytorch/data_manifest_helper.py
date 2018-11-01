@@ -33,11 +33,11 @@ def format_entry(entry, root):
     new_entry = entry[2].upper()
     return (new_file, new_entry)
 
-def make_manifest(inputfile, root, idx=-1):
+def make_manifest(inputfile, root, idx):
     if idx == -1:
         idx = ""
     else:
-        idx = str(idx)
+        idx = '_held'
     base = osp.basename(inputfile)
     base = base + idx
     manifest_file = osp.join(root, base)
@@ -79,7 +79,7 @@ if __name__ == "__main__":
         make_file(manifest_file)
         audio_dur = AverageMeter()
     else: 
-        manifest_file = make_manifest(filepath, root)
+        manifest_file = make_manifest(filepath, root, args.hold_idx)
     print("Manifest made: {}".format(manifest_file))
     f = open(filepath)
     summary = csv.reader(f,delimiter=',')
@@ -89,18 +89,21 @@ if __name__ == "__main__":
     for i, row in enumerate(summary):
         tot += 1;
         if args.hold_idx == i:
-            (hold_file, hold_entry) = format_entry(row, root)
+            #(hold_file, hold_entry) = format_entry(row, root)
+            hold_file = row[0]
+            hold_entry = row[1]
     cur = 0
     f.seek(0)
+    new_file = hold_entry
     for row in summary:
         if cur == 0:
             cur += 1
             continue
         if not args.stats:
             if args.hold_idx != -1:
-                new_file = hold_file
-                new_entry = hold_entry
+                write_line(manifest_file, hold_file+","+hold_entry+"\n")
             else:
+                exit(1)
                 (new_file, new_entry) = format_entry(row, root)
                 make_folder(new_file)
                 make_file(new_file, new_entry)
@@ -108,7 +111,7 @@ if __name__ == "__main__":
             seconds = sox.file_info.duration(row[0])
             audio_dur.update(seconds)
             new_file = "{},{}".format(seconds, audio_dur.avg)
-        write_line(manifest_file, row[0]+","+new_file+"\n")
+            write_line(manifest_file, row[0]+","+new_file+"\n")
         sys.stdout.write("\r[{}/{}] {}         ".format(cur,tot,new_file))
         sys.stdout.flush()
         cur += 1
