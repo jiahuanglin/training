@@ -195,6 +195,8 @@ def main():
         inputs = inputs.cuda()
 
     x = inputs
+    print(x.size())
+    os._exit(0)
 
     # Export the model
     onnx_file_path = osp.join(osp.dirname(args.continue_from),osp.basename(args.continue_from).split('.')[0]+".onnx")
