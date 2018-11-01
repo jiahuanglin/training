@@ -48,6 +48,8 @@ parser.add_argument('--cpu', default=0, type=int)
 
 parser.add_argument('--hold_idx', default=-1, type=int, help='input idx to hold the test dataset at')
 
+parser.add_argument('--batch_size_val', default=-1, type=int)
+
 
 def to_np(x):
     return x.data.cpu().numpy()
@@ -121,6 +123,9 @@ def main():
     else:
         testing_manifest = params.test_manifest
 
+    if args.batch_size_val > 0:
+        params.batch_size_val = args.batch_size_val
+
     print("Testing on: {}".format(testing_manifest))
     train_dataset = SpectrogramDataset(audio_conf=audio_conf, manifest_filepath=params.val_manifest, labels=labels,
                                        normalize=True, augment=params.augment)
@@ -128,7 +133,7 @@ def main():
                                       normalize=True, augment=False)
     train_loader = AudioDataLoader(train_dataset, batch_size=params.batch_size,
                                    num_workers=1)
-    test_loader = AudioDataLoader(test_dataset, batch_size=params.batch_size,
+    test_loader = AudioDataLoader(test_dataset, batch_size=params.batch_size_val,
                                   num_workers=1)
 
     rnn_type = params.rnn_type.lower()
