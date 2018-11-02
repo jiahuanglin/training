@@ -117,8 +117,8 @@ def eval_model_verbose(model, test_loader, decoder, cuda, n_trials=1):
 		batch_time.update(time.time() - end)
  
 		print('[{0}/{1}]\t'
-		      'Time {batch_time.val} ({batch_time.avg:.3f})'
-                      '50%|99% {2} | {3}\t'.format(
+		      'Unorm batch time {batch_time.val:.4f} ({batch_time.avg:.3f})'
+                      '50%|99% {2:.4f} | {3:.4f}\t'.format(
 		      (i + 1), min(n_trials, len(test_loader)), np.percentile(batch_time.array, 50),
                       np.percentile(batch_time.array, 99), batch_time=batch_time))
 

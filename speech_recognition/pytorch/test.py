@@ -337,8 +337,11 @@ def main():
         write_line(outfile, "hold_idx, {}\n".format(args.hold_idx))
         write_line(outfile, "cuda, {}\n".format(params.cuda))
         write_line(outfile, "avg batch time, {}\n".format(trials.avg/args.hold_sec))
-        write_line(outfile, "99%-tile latency, {}\n".format(np.percentile(trials.array,99)/args.hold_sec))
-        write_line(outfile, "through put, {}\n".format(params.batch_size_val/trials.avg*args.hold_sec))
+        percentile_50 = np.percentile(trials.array,50)/params.batch_size_val/args.hold_sec
+        write_line(outfile, "50%-tile latency, {}\n".format(percentile_50))
+        percentile_99 = np.percentile(trials.array,99)/params.batch_size_val/args.hold_sec
+        write_line(outfile, "99%-tile latency, {}\n".format(percentile_99))
+        write_line(outfile, "through put, {}\n".format(1/percentile_50))
         write_line(outfile, "data\n")
         for trial in trials.array:
             write_line(outfile, "{}\n".format(trial/args.hold_sec))
