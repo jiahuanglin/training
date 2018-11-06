@@ -53,6 +53,8 @@ parser.add_argument('--hold_sec', default=1, type=float)
 
 parser.add_argument('--batch_size_val', default=-1, type=int)
 
+parser.add_argument('--n_trials', default=-1, type=int, help='limit the number of trial ran, useful when holding idx')
+
 
 def to_np(x):
     return x.data.cpu().numpy()
@@ -184,9 +186,13 @@ def main():
         if args.start_epoch != -1:
           start_epoch = args.start_epoch
 
-        loss_results[:start_epoch], cer_results[:start_epoch], wer_results[:start_epoch] = package['loss_results'][:start_epoch], package[ 'cer_results'][:start_epoch], package['wer_results'][:start_epoch]
-        print(loss_results)
-        epoch = start_epoch
+        #loss_results[:start_epoch], cer_results[:start_epoch], wer_results[:start_epoch] = package['loss_results'][:start_epoch], package[ 'cer_results'][:start_epoch], package['wer_results'][:start_epoch]
+        #print(loss_results)
+        avg_loss = 0
+        start_epoch = 0
+        start_iter = 0
+        avg_training_loss = 0
+        epoch = 1
     else:
         avg_loss = 0
         start_epoch = 0
@@ -325,7 +331,7 @@ def main():
         total_cer, total_wer = 0, 0
         model.eval()
 
-        wer, cer, trials = eval_model_verbose( model, test_loader, decoder, params.cuda, 200)
+        wer, cer, trials = eval_model_verbose( model, test_loader, decoder, params.cuda, args.n_trials)
         root = os.getcwd()
         outfile = osp.join(root, "inference_bs{}_i{}_gpu{}.csv".format(params.batch_size_val, args.hold_idx, params.cuda))
         print("Exporting inference to: {}".format(outfile))

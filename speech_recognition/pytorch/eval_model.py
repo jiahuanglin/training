@@ -82,13 +82,13 @@ class AverageMeter(object):
         self.avg = self.sum / self.count
         self.array.append(val)
 
-def eval_model_verbose(model, test_loader, decoder, cuda, n_trials=1):
+def eval_model_verbose(model, test_loader, decoder, cuda, n_trials=-1):
         start_iter = 0  # Reset start iteration for next epoch
         total_cer, total_wer = 0, 0
         model.eval()
         batch_time = AverageMeter()
         for i, (data) in enumerate(test_loader):  # test
-            if i < n_trials:
+            if i < n_trials or n_trials == -1:
             	end = time.time()
                 inputs, targets, input_percentages, target_sizes = data
                 inputs = Variable(inputs, volatile=False)
@@ -119,7 +119,7 @@ def eval_model_verbose(model, test_loader, decoder, cuda, n_trials=1):
 		print('[{0}/{1}]\t'
 		      'Unorm batch time {batch_time.val:.4f} ({batch_time.avg:.3f})'
                       '50%|99% {2:.4f} | {3:.4f}\t'.format(
-		      (i + 1), min(n_trials, len(test_loader)), np.percentile(batch_time.array, 50),
+		      (i + 1), min(n_trials if n_trials!=-1 else len(test_loader), len(test_loader)), np.percentile(batch_time.array, 50),
                       np.percentile(batch_time.array, 99), batch_time=batch_time))
 
                 if cuda:
