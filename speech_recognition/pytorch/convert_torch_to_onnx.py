@@ -162,11 +162,15 @@ def main():
 
         if args.start_epoch != -1:
           start_epoch = args.start_epoch
-
-        loss_results[:start_epoch], cer_results[:start_epoch], wer_results[:start_epoch] = package['loss_results'][:start_epoch], package[ 'cer_results'][:start_epoch], package['wer_results'][:start_epoch]
-        print(loss_results)
-        epoch = start_epoch
-
+        try:
+            loss_results[:start_epoch], cer_results[:start_epoch], wer_results[:start_epoch] = package['loss_results'][:start_epoch], package[ 'cer_results'][:start_epoch], package['wer_results'][:start_epoch]
+            print(loss_results)
+            epoch = start_epoch
+        except RuntimeError as e:
+            avg_loss = 0
+            start_epoch = 0
+            start_iter = 0
+            avg_training_loss = 0
     else:
         avg_loss = 0
         start_epoch = 0

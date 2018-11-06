@@ -3,10 +3,15 @@ import caffe2.python.onnx.backend as backend
 # import onnx_caffe2.backend as backend
 import numpy as np
 import time
+import argparse
+args = 0
+
+parser = argparse.ArgumentParser(description='DeepSpeech training')
+parser.add_argument('--continue_from', default='', help='Continue from checkpoint model')
 
 def check_model():
     # Load the ONNX model
-    model = onnx.load("models/deepspeech_9.onnx")
+    model = onnx.load("models/deepspeech_{}.onnx".format(args.continue_from))
 
     # Check that the IR is well formed
     onnx.checker.check_model(model)
@@ -16,7 +21,7 @@ def check_model():
 
 
 def test_inference():
-    model = onnx.load("models/deepspeech_9.onnx")
+    model = onnx.load("models/deepspeech_{}.onnx".format(args.continue_from))
     print("checking onnx model!")
     onnx.checker.check_model(model)
     print("model checked, prepareing backend!")
@@ -38,5 +43,6 @@ def test_inference():
 
 
 if __name__ == "__main__":
+    args = parser.parse_args()
     test_inference()
 
