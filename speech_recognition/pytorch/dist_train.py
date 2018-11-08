@@ -43,10 +43,12 @@ parser.add_argument('--seed', default=0xdeadbeef, type=int, help='Random Seed')
 parser.add_argument('--acc', default=23.0, type=float, help='Target WER')
 parser.add_argument('--start_epoch', default=-1, type=int, help='Number of epochs at which to start from')
 parser.add_argument('--world_size', default=1, type=int, help='To train on a cluster of n nodes, set world_size to n')
-parser.add_argument('--dist_backend', default='nccl', help='Choose nccl to have multi gpu cluster support')
-parser.add_argument('--dist_url', default='tcp://127.0.0.1:1550')
-parser.add_argument('--node_rank', default=0, help='Rank of this process')
-parser.add_argument('--gpu_rank', default=None, help='Sets GPU for the process')
+parser.add_argument('--dist_backend', default='tcp', help='Choose nccl to have multi gpu cluster support')
+parser.add_argument('--dist_url', default='23.96.46.206')
+parser.add_argument('--dist_port', default='5050')
+parser.add_argument('--node_rank', default=0, type=int,  help='Rank of this process')
+parser.add_argument('--gpu_rank', default=None, type=int, help='Sets GPU for the process')
+parser.add_argument('--group', default='EcosystemDS2', help='Sets a groupname to identify the dist_train proc')
 
 
 def to_np(x):
@@ -80,8 +82,11 @@ def main():
     if distributed:
         if args.gpu_rank:
             torch.cuda.set_device(int(args.gpu_rank))
-        dist.init_process_group(backend=args.dist_backend, init_method=args.dist_url,
-                                world_size=args.world_size, rank=args.node_rank)
+        print("Waiting for process to join!")
+        dist.init_process_group(backend=args.dist_backend, init_method="tcp://{}:{}".format(args.dist_url,args.dist_port),
+                                world_size=args.world_size, group_name=args.group, rank=args.node_rank)
+        #dist.init_process_group(backend='tcp',init_method='tcp://127.0.0.1:2020',rank=args.node_rank,world_size=args.world_size)
+        
         is_dist_master = (args.node_rank==0)     # Only the master, the main proc will save models
 
     torch.manual_seed(args.seed)
@@ -157,7 +162,7 @@ def main():
         print("Loading checkpoint model %s" % args.continue_from)
         package = torch.load(args.continue_from)
         model.load_state_dict(package['state_dict'])
-	model = model.cuda()
+        model = model.cuda()
         optimizer.load_state_dict(package['optim_dict'])
         start_epoch = int(package.get('epoch', 1)) - 1  # Python index start at 0 for training
         start_iter = package.get('iteration', None)
@@ -186,7 +191,7 @@ def main():
     ### Distributed code ###
     if distributed:
         model         = torch.nn.parallel.DistributedDataParallel(model,
-                                                                  device_ids=(int(args.gpu_rank),) if args.rank else None)
+                                                                  device_ids=int(args.gpu_rank) if args.gpu_rank else None)
 
 
     print(model)

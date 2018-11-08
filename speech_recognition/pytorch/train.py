@@ -144,7 +144,7 @@ def main():
         print("Loading checkpoint model %s" % args.continue_from)
         package = torch.load(args.continue_from)
         model.load_state_dict(package['state_dict'])
-	model = model.cuda()
+        model = model.cuda()
         optimizer.load_state_dict(package['optim_dict'])
         start_epoch = int(package.get('epoch', 1)) - 1  # Python index start at 0 for training
         start_iter = package.get('iteration', None)

@@ -2,6 +2,7 @@ import argparse
 import errno
 import json
 import os
+import os.path as osp
 import time
 
 import sys
@@ -24,7 +25,7 @@ from model import DeepSpeech, supported_rnns
 
 import params
 
-from eval_model import  eval_model
+from eval_model import  eval_model_verbose
 
 ###########################################################
 # Comand line arguments, handled by params except seed    #
@@ -42,7 +43,18 @@ parser.add_argument('--acc', default=23.0, type=float, help='Target WER')
 
 parser.add_argument('--start_epoch', default=-1, type=int, help='Number of epochs at which to start from')
 
-parser.add_argument('--use_set', default="ov", help='ov = OpenVoice test set, libri = Librispeech val set')
+parser.add_argument('--use_set', default="libri", help='ov = OpenVoice test set, libri = Librispeech val set')
+
+parser.add_argument('--cpu', default=0, type=int)
+
+parser.add_argument('--hold_idx', default=-1, type=int, help='input idx to hold the test dataset at')
+
+parser.add_argument('--hold_sec', default=1, type=float)
+
+parser.add_argument('--batch_size_val', default=-1, type=int)
+
+parser.add_argument('--n_trials', default=-1, type=int, help='limit the number of trial ran, useful when holding idx')
+
 
 def to_np(x):
     return x.data.cpu().numpy()
@@ -65,9 +77,22 @@ class AverageMeter(object):
         self.count += n
         self.avg = self.sum / self.count
 
+def make_file(filename,data=None):
+    f = open(filename,"w+")
+    f.close()
+    if data:
+        write_line(filename,data)
+
+def write_line(filename,msg):
+    f = open(filename,"a")
+    f.write(msg)
+    f.close()
 
 def main():
     args = parser.parse_args()
+
+    params.cuda = not bool(args.cpu)
+    print("Use cuda: {}".format(params.cuda))
 
     torch.manual_seed(args.seed)
     torch.cuda.manual_seed_all(args.seed)
@@ -109,17 +134,21 @@ def main():
                       noise_levels=(params.noise_min, params.noise_max))
 
     if args.use_set == 'libri':
-        testing_manifest = params.val_manifest
+        testing_manifest = params.val_manifest + ("_held" if args.hold_idx >=0 else "")
     else:
         testing_manifest = params.test_manifest
 
+    if args.batch_size_val > 0:
+        params.batch_size_val = args.batch_size_val
+
+    print("Testing on: {}".format(testing_manifest))
     train_dataset = SpectrogramDataset(audio_conf=audio_conf, manifest_filepath=params.val_manifest, labels=labels,
                                        normalize=True, augment=params.augment)
     test_dataset = SpectrogramDataset(audio_conf=audio_conf, manifest_filepath=testing_manifest, labels=labels,
                                       normalize=True, augment=False)
     train_loader = AudioDataLoader(train_dataset, batch_size=params.batch_size,
                                    num_workers=1)
-    test_loader = AudioDataLoader(test_dataset, batch_size=params.batch_size,
+    test_loader = AudioDataLoader(test_dataset, batch_size=params.batch_size_val,
                                   num_workers=1)
 
     rnn_type = params.rnn_type.lower()
@@ -157,9 +186,13 @@ def main():
         if args.start_epoch != -1:
           start_epoch = args.start_epoch
 
-        loss_results[:start_epoch], cer_results[:start_epoch], wer_results[:start_epoch] = package['loss_results'][:start_epoch], package[ 'cer_results'][:start_epoch], package['wer_results'][:start_epoch]
-        print(loss_results)
-        epoch = start_epoch
+        #loss_results[:start_epoch], cer_results[:start_epoch], wer_results[:start_epoch] = package['loss_results'][:start_epoch], package[ 'cer_results'][:start_epoch], package['wer_results'][:start_epoch]
+        #print(loss_results)
+        avg_loss = 0
+        start_epoch = 0
+        start_iter = 0
+        avg_training_loss = 0
+        epoch = 1
     else:
         avg_loss = 0
         start_epoch = 0
@@ -298,7 +331,26 @@ def main():
         total_cer, total_wer = 0, 0
         model.eval()
 
-        wer, cer = eval_model( model, test_loader, decoder)
+        wer, cer, trials = eval_model_verbose( model, test_loader, decoder, params.cuda, args.n_trials)
+        root = os.getcwd()
+        outfile = osp.join(root, "inference_bs{}_i{}_gpu{}.csv".format(params.batch_size_val, args.hold_idx, params.cuda))
+        print("Exporting inference to: {}".format(outfile))
+        make_file(outfile)
+        write_line(outfile, "batch times pre normalized by hold_sec =,{}\n".format(args.hold_sec))
+        write_line(outfile, "wer, {}\n".format(wer))
+        write_line(outfile, "cer, {}\n".format(cer))
+        write_line(outfile, "bs, {}\n".format(params.batch_size_val))
+        write_line(outfile, "hold_idx, {}\n".format(args.hold_idx))
+        write_line(outfile, "cuda, {}\n".format(params.cuda))
+        write_line(outfile, "avg batch time, {}\n".format(trials.avg/args.hold_sec))
+        percentile_50 = np.percentile(trials.array,50)/params.batch_size_val/args.hold_sec
+        write_line(outfile, "50%-tile latency, {}\n".format(percentile_50))
+        percentile_99 = np.percentile(trials.array,99)/params.batch_size_val/args.hold_sec
+        write_line(outfile, "99%-tile latency, {}\n".format(percentile_99))
+        write_line(outfile, "through put, {}\n".format(1/percentile_50))
+        write_line(outfile, "data\n")
+        for trial in trials.array:
+            write_line(outfile, "{}\n".format(trial/args.hold_sec))
 
         loss_results[epoch] = avg_loss
         wer_results[epoch] = wer
