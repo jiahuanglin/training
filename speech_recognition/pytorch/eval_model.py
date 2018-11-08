@@ -1,32 +1,33 @@
+import sys
+sys.path.append('../')
 import json
+import time
 import numpy as np
 
+### Import torch ###
 import torch
 from torch.autograd import Variable
 from warpctc_pytorch import CTCLoss
-
 import torch.nn.functional as F
 
-import sys
 ### Import Data Utils ###
-sys.path.append('../')
-
 from data.bucketing_sampler import BucketingSampler, SpectrogramDatasetWithLength
 from data.data_loader import AudioDataLoader, SpectrogramDataset
 from decoder import GreedyDecoder
 from model import DeepSpeech, supported_rnns
 from params import cuda
 
-import time
-
 def eval_model(model, test_loader, decoder):
-        start_iter = 0  # Reset start iteration for next epoch
+"""
+Model evaluation -- used during training.
+"""
+        start_iter = 0
         total_cer, total_wer = 0, 0
         word_count, char_count = 0, 0
         model.eval()
-        for i, (data) in enumerate(test_loader):  # test
+        # For each batch in the test_loader, make a prediction and calculate the WER CER
+        for i, (data) in enumerate(test_loader):
             inputs, targets, input_percentages, target_sizes = data
-
             inputs = Variable(inputs, volatile=True)
 
             # unflatten targets
@@ -44,6 +45,8 @@ def eval_model(model, test_loader, decoder):
             seq_length = out.size(0)
             sizes = input_percentages.mul_(int(seq_length)).int()
 
+            # Decode the ouput to actual strings and compare to label
+            # Get the LEV score and the word, char count
             decoded_output = decoder.decode(out.data, sizes)
             target_strings = decoder.process_strings(decoder.convert_to_strings(split_targets))
             for x in range(len(target_strings)):
@@ -55,8 +58,10 @@ def eval_model(model, test_loader, decoder):
             if cuda:
                 torch.cuda.synchronize()
             del out
-        wer = total_wer / float(word_count)   #/ len(test_loader.dataset)
-        cer = total_cer / float(char_count)   #/ len(test_loader.dataset)
+        
+        # WER, CER
+        wer = total_wer / float(word_count)
+        cer = total_cer / float(char_count)
         wer *= 100
         cer *= 100
 
@@ -83,17 +88,23 @@ class AverageMeter(object):
         self.array.append(val)
 
 def eval_model_verbose(model, test_loader, decoder, cuda, n_trials=-1):
-        start_iter = 0  # Reset start iteration for next epoch
+"""
+Model evaluation -- used during inference.
+"""
+        start_iter = 0
         total_cer, total_wer = 0, 0
         word_count, char_count = 0, 0
         model.eval()
         batch_time = AverageMeter()
+        # We allow the user to specify how many batches (trials) to run
         trials_ran = min(n_trials if n_trials!=-1 else len(test_loader), len(test_loader))
-        for i, (data) in enumerate(test_loader):  # test
+        # For each batch in the test_loader, make a prediction and calculate the WER CER
+        for i, (data) in enumerate(test_loader):
             if i < n_trials or n_trials == -1:
                 end = time.time()
                 inputs, targets, input_percentages, target_sizes = data
                 inputs = Variable(inputs, volatile=False)
+                
                 # unflatten targets
                 split_targets = []
                 offset = 0
@@ -107,6 +118,9 @@ def eval_model_verbose(model, test_loader, decoder, cuda, n_trials=-1):
                 out = out.transpose(0, 1)  # TxNxH
                 seq_length = out.size(0)
                 sizes = input_percentages.mul_(int(seq_length)).int()
+                
+                # Decode the ouput to actual strings and compare to label
+                # Get the LEV score and the word, char count
                 decoded_output = decoder.decode(out.data, sizes)
                 target_strings = decoder.process_strings(decoder.convert_to_strings(split_targets))
                 for x in range(len(target_strings)):
@@ -115,7 +129,7 @@ def eval_model_verbose(model, test_loader, decoder, cuda, n_trials=-1):
                     word_count += len(target_strings[x].split())
                     char_count += len(target_strings[x])
                     
-                # measure elapsed time
+                # Measure elapsed batch time (time per trial)
                 batch_time.update(time.time() - end)
          
                 print('[{0}/{1}]\t'
@@ -129,6 +143,8 @@ def eval_model_verbose(model, test_loader, decoder, cuda, n_trials=-1):
                 del out
             else:
                 break
+                
+        # WER, CER
         wer = total_wer  / float(word_count)
         cer = total_cer / float(char_count)
         wer *= 100
