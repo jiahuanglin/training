@@ -22,6 +22,7 @@ import time
 def eval_model(model, test_loader, decoder):
         start_iter = 0  # Reset start iteration for next epoch
         total_cer, total_wer = 0, 0
+		word_count, char_count = 0, 0
         model.eval()
         for i, (data) in enumerate(test_loader):  # test
             inputs, targets, input_percentages, target_sizes = data
@@ -45,18 +46,17 @@ def eval_model(model, test_loader, decoder):
 
             decoded_output = decoder.decode(out.data, sizes)
             target_strings = decoder.process_strings(decoder.convert_to_strings(split_targets))
-            wer, cer = 0, 0
             for x in range(len(target_strings)):
-                wer += decoder.wer(decoded_output[x], target_strings[x]) / float(len(target_strings[x].split()))
-                cer += decoder.cer(decoded_output[x], target_strings[x]) / float(len(target_strings[x]))
-            total_cer += cer
-            total_wer += wer
+				total_wer += decoder.wer(decoded_output[x], target_strings[x])
+				total_cer += decoder.cer(decoded_output[x], target_strings[x]) 
+				word_count += len(target_strings[x].split())
+				char_count += len(target_strings[x]))	
 
             if cuda:
                 torch.cuda.synchronize()
             del out
-        wer = total_wer / len(test_loader.dataset)
-        cer = total_cer / len(test_loader.dataset)
+        wer = total_wer / float(word_count)   #/ len(test_loader.dataset)
+        cer = total_cer / float(char_count)   #/ len(test_loader.dataset)
         wer *= 100
         cer *= 100
 
@@ -85,8 +85,10 @@ class AverageMeter(object):
 def eval_model_verbose(model, test_loader, decoder, cuda, n_trials=-1):
         start_iter = 0  # Reset start iteration for next epoch
         total_cer, total_wer = 0, 0
+		word_count, char_count = 0, 0
         model.eval()
         batch_time = AverageMeter()
+		trials_ran = min(n_trials if n_trials!=-1 else len(test_loader), len(test_loader))
         for i, (data) in enumerate(test_loader):  # test
             if i < n_trials or n_trials == -1:
             	end = time.time()
@@ -96,8 +98,8 @@ def eval_model_verbose(model, test_loader, decoder, cuda, n_trials=-1):
                 split_targets = []
                 offset = 0
                 for size in target_sizes:
-		    split_targets.append(targets[offset:offset + size])
-		    offset += size
+					split_targets.append(targets[offset:offset + size])
+					offset += size
 
                 if cuda:
                     inputs = inputs.cuda()
@@ -107,28 +109,28 @@ def eval_model_verbose(model, test_loader, decoder, cuda, n_trials=-1):
                 sizes = input_percentages.mul_(int(seq_length)).int()
                 decoded_output = decoder.decode(out.data, sizes)
                 target_strings = decoder.process_strings(decoder.convert_to_strings(split_targets))
-	        wer, cer = 0, 0
-		for x in range(len(target_strings)):
-		    wer += decoder.wer(decoded_output[x], target_strings[x]) / float(len(target_strings[x].split()))
-		    cer += decoder.cer(decoded_output[x], target_strings[x]) / float(len(target_strings[x]))
-		total_cer += cer
-		total_wer += wer    
+				for x in range(len(target_strings)):
+					total_wer += decoder.wer(decoded_output[x], target_strings[x])
+					total_cer += decoder.cer(decoded_output[x], target_strings[x]) 
+					word_count += len(target_strings[x].split())
+					char_count += len(target_strings[x]))
+					
                 # measure elapsed time
-		batch_time.update(time.time() - end)
- 
-		print('[{0}/{1}]\t'
-		      'Unorm batch time {batch_time.val:.4f} ({batch_time.avg:.3f})'
-                      '50%|99% {2:.4f} | {3:.4f}\t'.format(
-		      (i + 1), min(n_trials if n_trials!=-1 else len(test_loader), len(test_loader)), np.percentile(batch_time.array, 50),
-                      np.percentile(batch_time.array, 99), batch_time=batch_time))
+				batch_time.update(time.time() - end)
+		 
+				print('[{0}/{1}]\t'
+					  'Unorm batch time {batch_time.val:.4f} ({batch_time.avg:.3f})'
+							  '50%|99% {2:.4f} | {3:.4f}\t'.format(
+					  (i + 1), trials_ran, np.percentile(batch_time.array, 50),
+							  np.percentile(batch_time.array, 99), batch_time=batch_time))
 
-                if cuda:
-	            torch.cuda.synchronize()
-                del out
+						if cuda:
+						torch.cuda.synchronize()
+						del out
             else:
                 break
-        wer = total_wer / min(n_trials,len(test_loader.dataset))
-        cer = total_cer / min(n_trials,len(test_loader.dataset))
+        wer = total_wer  / float(word_count)
+        cer = total_cer / float(char_count)
         wer *= 100
         cer *= 100
 
