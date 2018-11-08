@@ -53,7 +53,7 @@ Model evaluation -- used during training.
                 total_wer += decoder.wer(decoded_output[x], target_strings[x])
                 total_cer += decoder.cer(decoded_output[x], target_strings[x]) 
                 word_count += len(target_strings[x].split())
-                char_count += len(target_strings[x]))    
+                char_count += len(target_strings[x]) 
 
             if cuda:
                 torch.cuda.synchronize()
@@ -127,7 +127,7 @@ Model evaluation -- used during inference.
                     total_wer += decoder.wer(decoded_output[x], target_strings[x])
                     total_cer += decoder.cer(decoded_output[x], target_strings[x]) 
                     word_count += len(target_strings[x].split())
-                    char_count += len(target_strings[x]))
+                    char_count += len(target_strings[x])
                     
                 # Measure elapsed batch time (time per trial)
                 batch_time.update(time.time() - end)
@@ -141,7 +141,6 @@ Model evaluation -- used during inference.
                 if cuda:
                     torch.cuda.synchronize()
                 del out
-                
             else:
                 break
                 
