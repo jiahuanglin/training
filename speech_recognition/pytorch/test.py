@@ -13,8 +13,6 @@ import torch
 from torch.autograd import Variable
 from warpctc_pytorch import CTCLoss
 
-import torch.nn.functional as F
-
 ### Import Data Utils ###
 sys.path.append('../')
 
@@ -186,8 +184,6 @@ def main():
         if args.start_epoch != -1:
           start_epoch = args.start_epoch
 
-        #loss_results[:start_epoch], cer_results[:start_epoch], wer_results[:start_epoch] = package['loss_results'][:start_epoch], package[ 'cer_results'][:start_epoch], package['wer_results'][:start_epoch]
-        #print(loss_results)
         avg_loss = 0
         start_epoch = 0
         start_iter = 0
@@ -211,124 +207,10 @@ def main():
     ctc_time = AverageMeter()
 
     for epoch in range(start_epoch, params.epochs):
-        # model.train()
-        end = time.time()
-        for i, (data) in enumerate(train_loader, start=start_iter):
-            break
-            if i == len(train_loader):
-                break
-            inputs, targets, input_percentages, target_sizes = data
-            # measure data loading time
-            data_time.update(time.time() - end)
-            inputs = Variable(inputs, requires_grad=False)
-            target_sizes = Variable(target_sizes, requires_grad=False)
-            targets = Variable(targets, requires_grad=False)
-
-            if params.cuda:
-                inputs = inputs.cuda()
-
-            out = model(inputs)
-            out = out.transpose(0, 1)  # TxNxH
-
-            seq_length = out.size(0)
-            sizes = Variable(input_percentages.mul_(int(seq_length)).int(), requires_grad=False)
-
-            ctc_start_time = time.time()
-            loss = criterion(out, targets, sizes, target_sizes)
-            ctc_time.update(time.time() - ctc_start_time)
-
-            loss = loss / inputs.size(0)  # average the loss by minibatch
-
-            loss_sum = loss.data.sum()
-            inf = float("inf")
-            if loss_sum == inf or loss_sum == -inf:
-                print("WARNING: received an inf loss, setting loss value to 0")
-                loss_value = 0
-            else:
-                loss_value = loss.data[0]
-
-            avg_loss += loss_value
-            losses.update(loss_value, inputs.size(0))
-
-            # compute gradient
-            optimizer.zero_grad()
-            loss.backward()
-
-            torch.nn.utils.clip_grad_norm(model.parameters(), params.max_norm)
-            # SGD step
-            optimizer.step()
-
-            if params.cuda:
-                torch.cuda.synchronize()
-
-            # measure elapsed time
-            batch_time.update(time.time() - end)
-            end = time.time()
-
-            print('Epoch: [{0}][{1}/{2}]\t'
-                  'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
-                  'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
-                  'CTC Time {ctc_time.val:.3f} ({ctc_time.avg:.3f})\t'
-                  'Loss {loss.val:.4f} ({loss.avg:.4f})\t'.format(
-                (epoch + 1), (i + 1), len(train_loader), batch_time=batch_time,
-                data_time=data_time, ctc_time=ctc_time, loss=losses))
-
-            # del loss
-            # del out
-
-            if (i+1) % 10000 == 0:
-                print('Training Summary Epoch: [{0}]\t'
-                      'Average Loss {loss:.3f}\t'
-                      .format(epoch + 1, loss=avg_loss/5000, ))
-
-                start_iter = 0  # Reset start iteration for next epoch
-                total_cer, total_wer = 0, 0
-                model.eval()
-
-                wer, cer = eval_model(model, test_loader, decoder)
-
-                loss_results[epoch] = avg_loss
-                wer_results[epoch] = wer
-                cer_results[epoch] = cer
-                print('Test Summary Epoch: [{0}]\t'
-                      'Average WER {wer:.3f}\t'
-                      'Average CER {cer:.3f}\t'.format(
-                    epoch, wer=wer, cer=cer))
-
-                if args.checkpoint:
-                    file_path = '%s/deepspeech_%d.pth.tar' % (save_folder, epoch + 1)
-                    torch.save(DeepSpeech.serialize(model, optimizer=optimizer, epoch=epoch, loss_results=loss_results,
-                                                    wer_results=wer_results, cer_results=cer_results),
-                               file_path)
-                # anneal lr
-                optim_state = optimizer.state_dict()
-                optim_state['param_groups'][0]['lr'] = optim_state['param_groups'][0]['lr'] / params.learning_anneal
-                optimizer.load_state_dict(optim_state)
-                print('Learning rate annealed to: {lr:.6f}'.format(lr=optim_state['param_groups'][0]['lr']))
-
-                if best_wer is None or best_wer > wer:
-                    print("Found better validated model, saving to %s" % args.model_path)
-                    torch.save(DeepSpeech.serialize(model, optimizer=optimizer, epoch=epoch, loss_results=loss_results,
-                                                    wer_results=wer_results, cer_results=cer_results)
-                               , args.model_path)
-                    best_wer = wer
-                model.train()
-
-            del loss
-            del out
-
-        #avg_loss /= len(train_loader)
-
-        #print('Training Summary Epoch: [{0}]\t'
-        #    'Average Loss {loss:.3f}\t'
-        #    .format( epoch + 1, loss=avg_loss, ))
 
         #################################################################################################################
         #                    The test script only really cares about this section.
         #################################################################################################################
-
-        start_iter = 0  # Reset start iteration for next epoch
-        total_cer, total_wer = 0, 0
         model.eval()
 
         wer, cer, trials = eval_model_verbose( model, test_loader, decoder, params.cuda, args.n_trials)
@@ -360,30 +242,13 @@ def main():
               'Average CER {cer:.3f}\t'.format(
             epoch + 1, wer=wer, cer=cer))
 
-        #if args.checkpoint:
-        #    file_path = '%s/deepspeech_%d.pth.tar' % (save_folder, epoch + 1)
-        #    torch.save(DeepSpeech.serialize(model, optimizer=optimizer, epoch=epoch, loss_results=loss_results,
-        #                                    wer_results=wer_results, cer_results=cer_results),
-        #               file_path)
         # anneal lr
         optim_state = optimizer.state_dict()
         optim_state['param_groups'][0]['lr'] = optim_state['param_groups'][0]['lr'] / params.learning_anneal
         optimizer.load_state_dict(optim_state)
         print('Learning rate annealed to: {lr:.6f}'.format(lr=optim_state['param_groups'][0]['lr']))
 
-        #if best_wer is None or best_wer > wer:
-        #    print("Found better validated model, saving to %s" % args.model_path)
-        #    torch.save(DeepSpeech.serialize(model, optimizer=optimizer, epoch=epoch, loss_results=loss_results,
-        #                                    wer_results=wer_results, cer_results=cer_results)
-        #               , args.model_path)
-        #    best_wer = wer
-
-        avg_loss = 0
-        #model.train()
         break
-        #If set to exit at a given accuracy, exit
-        if params.exit_at_acc and (best_wer <= args.acc):
-            break
 
     print("=======================================================")
     print("***Best WER = ", best_wer)
