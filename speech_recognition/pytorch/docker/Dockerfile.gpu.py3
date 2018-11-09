@@ -23,12 +23,15 @@ RUN apt-get update && apt-get install -y \
   apt-utils
 
 # Make pip happy about itself.
+# This step does not work well because after upgrade, pip3 get's lost...
 #RUN pip3 install --upgrade pip
 
 # Unlike apt-get, upgrading pip does not change which package gets installed,
 # (since it checks pypi everytime regardless) so it's okay to cache pip.
 # Install pytorch
 # http://pytorch.org/
+# Note the 3 versions of pytorch choices made available here are for convenience
+# in case you need to debug. We only had success with 0.4.0
 RUN pip3 install h5py \
                 hickle \
                 matplotlib \
@@ -36,7 +39,7 @@ RUN pip3 install h5py \
                 torch==0.4.1 \
                 torchvision \
                 cffi \
-		onnx \
+			onnx \
                 python-Levenshtein \
                 librosa \
                 wget \
@@ -47,24 +50,18 @@ RUN apt-get update && apt-get install --yes --no-install-recommends cmake \
 
 ENV CUDA_HOME "/usr/local/cuda"
 
-# install warp-ctc
-# RUN git clone https://github.com/ahsueh1996/warp-ctc.git && \
-#    cd warp-ctc && git checkout pytorch_bindings && \
-#    mkdir -p build && cd build && cmake .. && make VERBOSE=1 && \
-#    cd ../pytorch_binding && python3 setup.py install
+# Install warp-ctc
 RUN git clone https://github.com/SeanNaren/warp-ctc.git && \
     cd warp-ctc && \
     mkdir -p build && cd build && cmake .. && make && \
     cd ../pytorch_binding && python3 setup.py install
 
-# install pytorch audio
+# Install pytorch audio
 RUN apt-get install -y sox libsox-dev libsox-fmt-all
 RUN git clone https://github.com/pytorch/audio.git
-RUN cd audio; python3 setup.py install 
-# Had troubles with pytorch
-# RUN cd audio; git reset --hard 67564173db19035329f21caa7d2be986c4c23797; python setup.py install
+RUN cd audio; python3 setup.py install
 
-# install ctcdecode
+# Install ctcdecode
 RUN git clone --recursive https://github.com/parlance/ctcdecode.git
 RUN cd ctcdecode; pip3 install .
 
