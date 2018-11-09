@@ -20,4 +20,4 @@ WER
 |6        |--       |37.5     |MLPerf Default      |
 |9        |--       |35.4     |Original Paper      |
 |13       |--       |34.1     |"Aggressive LR"     |
-|20       |21.1     |33.7     |"Aggressive LR"     |
+|20       |21.2     |33.7     |"Aggressive LR"     |
