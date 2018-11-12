@@ -91,56 +91,58 @@ if __name__ == "__main__":
     assert (start > 0 and start < results_len-1), "data tag for results_file not found in valid position"
     runtime_res = runtime_res[start:]
 
-#     # 1. Plot the distribution of each sample's runtimes, plot the warmups runs in RED
-#     # 1b. Compute mean sample runtime and standard deviation (excluding warmups).
-#     print("Plotting distribution os sample runtimes")
-#     IDX = 0; DUR = 1; TIME =2;
-#     num_warmups = 50 
-#     data = dict()
-#     fig1 = plt.figure(1)
-#     ax = plt.subplot(1, 1, 1)
-#     for run_num, audioname in enumerate(run_num_to_audioname):
-#         color = 'r' 
-#         stat = list(audio_stats[audioname])
-#         stat.append(runtime_res[run_num])
-#         if run_num > num_warmups:
-#             color = 'b'
-#             # Update the data dictionary to compute error bars and print out a detailed summary
-#             idx = stat[IDX]
-#             if not idx in data:
-#                 data[idx] = {'series': [stat[TIME]],'n': 1, 'mean': stat[TIME], 'stddev': 0}
-#             else:
-#                 prev = data[idx]                
-#                 data[idx]['series'].append(stat[TIME])
-#                 data[idx]['n'] += 1
-#                 data[idx]['mean'] = sum(data[idx]['series']) / data[idx]['n']
-#                 data[idx]['stddev'] = np.std(data[idx]['series'])
-#         ax.plot(stat[IDX],stat[TIME],marker='o',c=color)
-# #         plt_show_no_blk(t=0.0001)
-#         sys.stdout.write("\r[{}/{}]         ".format(run_num, len(run_num_to_audioname)))
-#         sys.stdout.flush()
-#     print('Save data')
-#     data_output = osp.join(pwd, "sample_runtime.csv")
-#     make_file(data_output)
-#     write_line(data_output, "idx,n,mean,stddev,trials\n")
-#     for idx in data:
-#         series_str = ""
-#         for trial in data[idx]['series']:
-#             series_str = series_str + str(trial) + ","
-#         write_line(data_output, "{},{},{},{},{}\n".format(idx,data[idx]['n'],
-#                                                         data[idx]['mean'],
-#                                                         data[idx]['stddev'],
-#                                                         series_str))
-#         sys.stdout.write("\r[{}/{}]         ".format(idx, len(data)))
-#         sys.stdout.flush()
-#     print('Plot error bars')
-#     for idx in data:
-#         ax.errorbar(idx,data[idx]['mean'],yerr=data[idx]['stddev'])
-#     print('Showing plot (takes a while and blocks)')
-# #     plt.show()
-#     print('Saving Figures')
-# #     plt.savefig("sample_runtime.jpg")
-#     print('fin')
+    # 1. Plot the distribution of each sample's runtimes, plot the warmups runs in RED
+    # 1b. Compute mean sample runtime and standard deviation (excluding warmups).
+    IDX = 0; DUR = 1; TIME =2;
+    num_warmups = 50 
+    data = dict()
+    fig1 = plt.figure(1)
+    ax = plt.subplot(1, 1, 1)
+    for run_num, audioname in enumerate(run_num_to_audioname):
+        color = 'r' 
+        stat = list(audio_stats[audioname])
+        stat.append(runtime_res[run_num])
+        if run_num > num_warmups:
+            color = 'b'
+            # Update the data dictionary to compute error bars and print out a detailed summary
+            idx = stat[IDX]
+            if not idx in data:
+                data[idx] = {'series': [stat[TIME]],'n': 1, 'mean': stat[TIME], 'stddev': 0}
+            else:
+                prev = data[idx]                
+                data[idx]['series'].append(stat[TIME])
+                data[idx]['n'] += 1
+                data[idx]['mean'] = sum(data[idx]['series']) / data[idx]['n']
+                data[idx]['stddev'] = np.std(data[idx]['series'])
+        ax.plot(stat[IDX],stat[TIME],marker='o',c=color)
+#         plt_show_no_blk(t=0.0001)
+        sys.stdout.write("\r[{}/{}]         ".format(run_num, len(run_num_to_audioname)))
+        sys.stdout.flush()
+    print('Save data')
+    data_output = osp.join(pwd, "sample_runtime.csv")
+    make_file(data_output)
+    write_line(data_output, "idx,n,mean,stddev,trials\n")
+    for idx in data:
+        series_str = ""
+        for trial in data[idx]['series']:
+            series_str = series_str + str(trial) + ","
+        write_line(data_output, "{},{},{},{},{}\n".format(idx,data[idx]['n'],
+                                                        data[idx]['mean'],
+                                                        data[idx]['stddev'],
+                                                        series_str))
+        sys.stdout.write("\r[{}/{}]         ".format(idx, len(data)))
+        sys.stdout.flush()
+    print('Plot error bars')
+    for idx in data:
+        ax.errorbar(idx,data[idx]['mean'],yerr=data[idx]['stddev'])
+    plt.title('Sactter plot of inference trials and variances of Librispeech Test Clean inputs')
+    plt.xlabel('Idx of input')
+    plt.ylabel('Latency of inference trials')
+    print('Showing plot (takes a while and blocks)')
+#     plt.show()
+    print('Saving Figures')
+    plt.savefig("sample_runtime.jpg")
+    print('fin')
     
     # 2. Remove some x warmup runs then plot the CDF
     print('Generating histogram')
@@ -151,6 +153,9 @@ if __name__ == "__main__":
     fig2 = plt.figure(2)
     ax2 = plt.subplot(1, 1, 1)
     ax2.plot(bin_edges[1:],cdf)
+    plt.xlabel('Latency bound [sec]')
+    plt.ylabel('% of samples')
+    plt.title('% of batch size 1 inputs from Librispeech Test Clean satisfying a latency bound')
     plt.xticks(bin_edges,rotation=90)
     plt.yticks(cdf[::10], np.round(cdf/cdf[-1],2)[::10])
     plt.axhline(y=0.99*cdf[-1],xmin=0,xmax=bin_edges[-1],c='k')
@@ -174,6 +179,9 @@ if __name__ == "__main__":
     ax3 = plt.subplot(1,1,1)
     ax3.plot(bin_edges[1:],hist)
     plt.xticks(bin_edges,rotation=90)
+    plt.title('Audio clip duration Histogram for Librispeech Test Clean')
+    plt.xlabel('Duration of audio clip [sec]')
+    plt.ylabel('Count')
     print('Showing plot')
     plt.show()
     print('fin')
