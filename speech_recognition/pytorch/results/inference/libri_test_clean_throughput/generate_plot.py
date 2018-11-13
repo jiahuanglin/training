@@ -10,9 +10,6 @@ import matplotlib.pyplot as plt
 from astropy.units import ymin
 
 parser = argparse.ArgumentParser(description='DeepSpeech inference graph plotter')
-parser.add_argument('--manifest_stats', default="libri_test_manifest.csv_stats", help='CSV containing audio file name and its duration')
-parser.add_argument('--manifest', default="libri_test_manifest.csv_scram_rep", help='CSV containing the results of the inferenc runs')
-parser.add_argument('--results', default="cpu_flash_storage_scram_rep.csv", help='CSV containing the results of the inferenc runs')
 
 def make_file(filename,data=None):
     f = open(filename,"w+")
@@ -67,130 +64,31 @@ if __name__ == "__main__":
         assert (start > 0 and start < results_len-1), "data tag for results_file not found in valid position"
         return meta, runtime_res[start:]  # meta and data
     
-    folders = ['2s','5s','10s']
+    folders = ['2s']
+    colors = ['k','b','g','r']
+    batch_sizes = [1,2,3,4,5,6,7,8,9,10,11,12]
     
-    # Load the csv file   
-
-
-
-    # 1. Plot the distribution of each sample's runtimes, plot the warmups runs in RED
-    # 1b. Compute mean sample runtime and standard deviation (excluding warmups).
-    IDX = 0; DUR = 1; TIME =2;
-    num_warmups = 50 
+    DUR = 0; BS = 4; P50 = 7; P99 = 8;
+    num_warmups = 0 
+    
+    
     data = dict()
     fig1 = plt.figure(1)
     ax = plt.subplot(1, 1, 1)
-    for run_num, audioname in enumerate(run_num_to_audioname):
-        color = 'r' 
-        stat = list(audio_stats[audioname])
-        stat.append(runtime_res[run_num])
-        if run_num > num_warmups:
-            color = 'b'
-            # Update the data dictionary to compute error bars and print out a detailed summary
-            idx = stat[IDX]
-            if not idx in data:
-                data[idx] = {'series': [stat[TIME]],'n': 1, 'mean': stat[TIME], 'stddev': 0, 'dur': stat[DUR]}
-            else:
-                prev = data[idx]                
-                data[idx]['series'].append(stat[TIME])
-                data[idx]['n'] += 1
-                data[idx]['mean'] = sum(data[idx]['series']) / data[idx]['n']
-                data[idx]['stddev'] = np.std(data[idx]['series'])
-        ax.plot(stat[IDX],stat[TIME],marker='o',c=color)
-#         plt_show_no_blk(t=0.0001)
-        sys.stdout.write("\r[{}/{}]         ".format(run_num, len(run_num_to_audioname)))
-        sys.stdout.flush()
-    print('Save data')
-    data_output = osp.join(pwd, "sample_runtime.csv")
-    make_file(data_output)
-    write_line(data_output, "idx,n,mean,stddev,trials\n")
-    for idx in data:
-        series_str = ""
-        for trial in data[idx]['series']:
-            series_str = series_str + str(trial) + ","
-        write_line(data_output, "{},{},{},{},{}\n".format(idx,data[idx]['n'],
-                                                        data[idx]['mean'],
-                                                        data[idx]['stddev'],
-                                                        series_str))
-        sys.stdout.write("\r[{}/{}]         ".format(idx, len(data)))
-        sys.stdout.flush()
-    print('Plot error bars')
-    for idx in data:
-        ax.errorbar(idx,data[idx]['mean'],yerr=data[idx]['stddev'])
-    plt.title('Scatter plot of inference trials and variances of Librispeech Test Clean inputs')
-    plt.xlabel('Idx of input')
-    plt.ylabel('Latency of inference trials [sec]')
-    print('Showing plot (takes a while and blocks)')
+    for folder, color in zip(folders,colors):
+        for batch_size in batch_sizes:
+            res_path = osp.join(pwd,folder,"{}.csv".format(batch_size))
+            meta, _ = preproc_results(load_results(res_path))
+            ax.plot(float(meta[P99][1])*batch_size,batch_size*float(meta[DUR][1]),marker="o",c=color)
+            sys.stdout.write("\r[{}/{}]         ".format(folder, batch_size))
+            sys.stdout.flush()
+
+    plt.title('Throughput vs Latency of Librispeech Test Clean inputs')
+    plt.xlabel('Latency per batch [sec]')
+    plt.ylabel('Throughput, total audio duration of batch [sec]')
+    plt.legend(folders,loc='best')
+    print('Showing plot')
     plt.show()
 #     print('Saving Figures')
 #     plt.savefig("sample_runtime.jpg")
     print('fin')
-    
-    # 1.5 Plot out the normalized plot using 
-    fig15 = plt.figure(15)
-    ax15 = plt.subplot(1, 1, 1)
-    print('Plot realtime speedup')
-    for idx in data:
-        ax15.plot(idx, data[idx]['dur']/data[idx]['mean'], marker='o', c='g')
-    plt.title('Normalized mean performance plot Librispeech Test Clean inputs')
-    plt.xlabel('Idx of input')
-    plt.ylabel('Real-time speed up = Input duration / mean Latency of inference trials [sec/sec]')
-    print('Showing plot')
-    plt.show()
-    print('fin')
-    
-    fig15 = plt.figure(16)
-    ax16 = plt.subplot(1, 1, 1)
-    print('Plot realtime speedup')
-    for idx in data:
-        ax16.plot(data[idx]['dur'], data[idx]['dur']/data[idx]['mean'], marker='o', c='g')
-    plt.title('Normalized mean performance plot Librispeech Test Clean inputs')
-    plt.xlabel('Input duration')
-    plt.ylabel('Real-time speed up = Input duration / mean Latency of inference trials [sec/sec]')
-    print('Showing plot')
-    plt.show()
-    print('fin')
-    
-    # 2. Remove some x warmup runs then plot the CDF
-    print('Generating histogram')
-    hist, bin_edges = np.histogram(runtime_res,bins=70)
-    print('Generating cdf')
-    cdf = np.cumsum(hist)
-    print('Ploting cdf')
-    fig2 = plt.figure(2)
-    ax2 = plt.subplot(1, 1, 1)
-    ax2.plot(bin_edges[1:],cdf)
-    plt.xlabel('Latency bound [sec]')
-    plt.ylabel('% of samples')
-    plt.title('% of batch size 1 inputs from Librispeech Test Clean satisfying a latency bound')
-    plt.xticks(bin_edges,rotation=90)
-    plt.yticks(cdf[::10], np.round(cdf/cdf[-1],2)[::10])
-    plt.axhline(y=0.99*cdf[-1],xmin=0,xmax=bin_edges[-1],c='k')
-    plt.axvline(x=bin_edges[find_nearest_idx(cdf/cdf[-1], 0.99)],ymin=0, ymax=1,c='k')
-    print('Showing plot')
-    plt.show()
-    print('fin')
-    
-    # 3. Plot the distribution of audio durations
-    DUR = 1
-    print('Extracing audio durations')
-    audio_dur = [audio_stats[key][DUR] for key in audio_stats]
-    print(max(audio_dur))
-    print('Cleaning invalid durations')
-    while -1 in audio_dur:
-        audio_dur.remove(-1)
-    print('Generating histogram')
-    hist, bin_edges = np.histogram(audio_dur,bins=70)
-    print('Plotting histogram')
-    fig3 = plt.figure(3)
-    ax3 = plt.subplot(1,1,1)
-    ax3.plot(bin_edges[1:],hist)
-    plt.xticks(bin_edges,rotation=90)
-    plt.title('Audio clip duration Histogram for Librispeech Test Clean')
-    plt.xlabel('Duration of audio clip [sec]')
-    plt.ylabel('Count')
-    print('Showing plot')
-    plt.show()
-    print('fin')
-    
-    
