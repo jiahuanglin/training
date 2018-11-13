@@ -38,7 +38,7 @@ def make_manifest(inputfile, root, idx):
     if idx == -1:
         idx = ""
     else:
-        idx = '_held'
+        idx = '_held{}'.format(idx)
     base = osp.basename(inputfile)
     base = base + idx
     manifest_file = osp.join(root, base)

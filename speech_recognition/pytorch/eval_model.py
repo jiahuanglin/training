@@ -18,9 +18,6 @@ from model import DeepSpeech, supported_rnns
 from params import cuda
 
 def eval_model(model, test_loader, decoder):
-"""
-Model evaluation -- used during training.
-"""
         start_iter = 0
         total_cer, total_wer = 0, 0
         word_count, char_count = 0, 0
@@ -88,9 +85,6 @@ class AverageMeter(object):
         self.array.append(val)
 
 def eval_model_verbose(model, test_loader, decoder, cuda, n_trials=-1):
-"""
-Model evaluation -- used during inference.
-"""
         start_iter = 0
         total_cer, total_wer = 0, 0
         word_count, char_count = 0, 0
