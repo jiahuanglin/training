@@ -64,7 +64,7 @@ if __name__ == "__main__":
         assert (start > 0 and start < results_len-1), "data tag for results_file not found in valid position"
         return meta, runtime_res[start:]  # meta and data
     
-    folders = ['2s','5s']
+    folders = ['2s','5s','5s_rerun']
     colors = ['k','b','g','r']
     batch_sizes = [1,2,3,4,5,6,7,8,9,10,11,12]
     
@@ -84,7 +84,7 @@ if __name__ == "__main__":
             sys.stdout.flush()
 
     plt.title('Throughput vs Latency of Librispeech Test Clean inputs')
-    plt.xlabel('Latency per batch [sec]')
+    plt.xlabel('99%-tile latency for one batch [sec]')
     plt.ylabel('Throughput, total audio duration of batch [sec]')
     plt.legend(folders,loc='best')
     print('Showing plot')
