@@ -64,7 +64,7 @@ if __name__ == "__main__":
         assert (start > 0 and start < results_len-1), "data tag for results_file not found in valid position"
         return meta, runtime_res[start:]  # meta and data
     
-    folders = ['2s']
+    folders = ['2s','5s']
     colors = ['k','b','g','r']
     batch_sizes = [1,2,3,4,5,6,7,8,9,10,11,12]
     
