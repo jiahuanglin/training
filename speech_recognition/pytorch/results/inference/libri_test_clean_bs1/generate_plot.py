@@ -107,7 +107,7 @@ if __name__ == "__main__":
             # Update the data dictionary to compute error bars and print out a detailed summary
             idx = stat[IDX]
             if not idx in data:
-                data[idx] = {'series': [stat[TIME]],'n': 1, 'mean': stat[TIME], 'stddev': 0}
+                data[idx] = {'series': [stat[TIME]],'n': 1, 'mean': stat[TIME], 'stddev': 0, 'dur': stat[DUR]}
             else:
                 prev = data[idx]                
                 data[idx]['series'].append(stat[TIME])
@@ -135,13 +135,38 @@ if __name__ == "__main__":
     print('Plot error bars')
     for idx in data:
         ax.errorbar(idx,data[idx]['mean'],yerr=data[idx]['stddev'])
-    plt.title('Sactter plot of inference trials and variances of Librispeech Test Clean inputs')
+    plt.title('Scatter plot of inference trials and variances of Librispeech Test Clean inputs')
     plt.xlabel('Idx of input')
-    plt.ylabel('Latency of inference trials')
+    plt.ylabel('Latency of inference trials [sec]')
     print('Showing plot (takes a while and blocks)')
-#     plt.show()
-    print('Saving Figures')
-    plt.savefig("sample_runtime.jpg")
+    plt.show()
+#     print('Saving Figures')
+#     plt.savefig("sample_runtime.jpg")
+    print('fin')
+    
+    # 1.5 Plot out the normalized plot using 
+    fig15 = plt.figure(15)
+    ax15 = plt.subplot(1, 1, 1)
+    print('Plot realtime speedup')
+    for idx in data:
+        ax15.plot(idx, data[idx]['dur']/data[idx]['mean'], marker='o', c='g')
+    plt.title('Normalized mean performance plot Librispeech Test Clean inputs')
+    plt.xlabel('Idx of input')
+    plt.ylabel('Real-time speed up = Input duration / mean Latency of inference trials [sec/sec]')
+    print('Showing plot')
+    plt.show()
+    print('fin')
+    
+    fig15 = plt.figure(16)
+    ax16 = plt.subplot(1, 1, 1)
+    print('Plot realtime speedup')
+    for idx in data:
+        ax16.plot(data[idx]['dur'], data[idx]['dur']/data[idx]['mean'], marker='o', c='g')
+    plt.title('Normalized mean performance plot Librispeech Test Clean inputs')
+    plt.xlabel('Input duration')
+    plt.ylabel('Real-time speed up = Input duration / mean Latency of inference trials [sec/sec]')
+    print('Showing plot')
+    plt.show()
     print('fin')
     
     # 2. Remove some x warmup runs then plot the CDF

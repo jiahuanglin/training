@@ -133,7 +133,7 @@ def main():
                       noise_levels=(params.noise_min, params.noise_max))
 
     if args.use_set == 'libri':
-        testing_manifest = params.val_manifest + ("_held" if args.hold_idx >=0 else "")
+        testing_manifest = params.val_manifest + ("_held{}".format(args.hold_idx) if args.hold_idx >=0 else "")
     else:
         testing_manifest = params.test_manifest
 

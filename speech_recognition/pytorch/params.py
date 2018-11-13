@@ -21,7 +21,7 @@ cuda = True
 # Dataset location
 labels_path    = '../labels.json' #Contains all characters for prediction
 train_manifest = '../libri_train_manifest.csv' #relative path to train manifest is download_dataset is used
-val_manifest = '../libri_test_manifest_clean.csv' #relative path to val manifest is download_dataset is used
+val_manifest = '../libri_test_manifest.csv' #relative path to val manifest is download_dataset is used
 #test_manifest = '../libri_test_manifest.csv'	# Librispeech test set NON EXISTENT
 test_manifest = '../cv-valid-test_manifest.csv' # OpenVoice test set
 
