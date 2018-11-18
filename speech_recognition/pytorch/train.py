@@ -135,8 +135,7 @@ def main():
                        bias            = params.bias)
 
     parameters = model.parameters()
-    optimizer = torch.optim.SGD(parameters, lr=params.lr,
-                                momentum=params.momentum, nesterov=True,
+    optimizer = torch.optim.Adam(parameters, lr=params.lr,
                                 weight_decay = params.l2)
     decoder = GreedyDecoder(labels)
 
