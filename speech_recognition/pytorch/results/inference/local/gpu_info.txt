@@ -1,0 +1,19 @@
+0a:00.0 VGA compatible controller: NVIDIA Corporation GP104GL [Quadro P4000] (rev a1) (prog-if 00 [VGA controller])
+        Subsystem: NVIDIA Corporation Device 11a3
+        Flags: bus master, fast devsel, latency 0, IRQ 27
+        Memory at fa000000 (32-bit, non-prefetchable) [size=16M]
+        Memory at c0000000 (64-bit, prefetchable) [size=256M]
+        Memory at d0000000 (64-bit, prefetchable) [size=32M]
+        I/O ports at e000 [size=128]
+        [virtual] Expansion ROM at fb000000 [disabled] [size=512K]
+        Capabilities: [60] Power Management version 3
+        Capabilities: [68] MSI: Enable- Count=1/1 Maskable- 64bit+
+        Capabilities: [78] Express Legacy Endpoint, MSI 00
+        Capabilities: [100] Virtual Channel
+        Capabilities: [250] Latency Tolerance Reporting
+        Capabilities: [128] Power Budgeting <?>
+        Capabilities: [420] Advanced Error Reporting
+        Capabilities: [600] Vendor Specific Information: ID=0001 Rev=1 Len=024 <?>
+        Capabilities: [900] #19
+        Kernel driver in use: nvidia
+        Kernel modules: nvidiafb, nouveau, nvidia_384_drm, nvidia_384
