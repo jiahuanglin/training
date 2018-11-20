@@ -1,3 +1,5 @@
+import os
+import os.path as osp
 import sys
 sys.path.append('../')
 import json
@@ -16,6 +18,17 @@ from data.data_loader import AudioDataLoader, SpectrogramDataset
 from decoder import GreedyDecoder
 from model import DeepSpeech, supported_rnns
 from params import cuda
+
+def make_file(filename,data=None):
+    f = open(filename,"w+")
+    f.close()
+    if data:
+        write_line(filename,data)
+
+def write_line(filename,msg):
+    f = open(filename,"a")
+    f.write(msg)
+    f.close()
 
 def eval_model(model, test_loader, decoder):
         start_iter = 0
@@ -85,6 +98,23 @@ class AverageMeter(object):
         self.array.append(val)
 
 def eval_model_verbose(model, test_loader, decoder, cuda, n_trials=-1):
+        # First we will create a temporary output file incase we want to get the intermidiary results
+        root = os.getcwd()
+        outfile = osp.join(root, "eval_model_verbose_out.csv")
+        print("Temp results to: {}".format(outfile))
+        make_file(outfile)
+        write_line(outfile, "batch times pre normalized by hold_sec =,{}\n".format(1))
+        write_line(outfile, "wer, {}\n".format(-1))
+        write_line(outfile, "cer, {}\n".format(-1))
+        write_line(outfile, "bs, {}\n".format(-1))
+        write_line(outfile, "hold_idx, {}\n".format(-1))
+        write_line(outfile, "cuda, {}\n".format(-1))
+        write_line(outfile, "avg batch time, {}\n".format(-1))
+        write_line(outfile, "50%-tile latency, {}\n".format(-1))
+        write_line(outfile, "99%-tile latency, {}\n".format(-1))
+        write_line(outfile, "through put, {}\n".format(-1))
+        write_line(outfile, "data\n")
+
         start_iter = 0
         total_cer, total_wer = 0, 0
         word_count, char_count = 0, 0
@@ -125,6 +155,7 @@ def eval_model_verbose(model, test_loader, decoder, cuda, n_trials=-1):
                     
                 # Measure elapsed batch time (time per trial)
                 batch_time.update(time.time() - end)
+                write_line(outfile, "{}\n".format(batch_time.array[-1]))
          
                 print('[{0}/{1}]\t'
                       'Unorm batch time {batch_time.val:.4f} ({batch_time.avg:.3f})'
