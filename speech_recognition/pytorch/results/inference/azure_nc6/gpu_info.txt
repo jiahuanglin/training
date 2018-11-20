@@ -1,0 +1,17 @@
+d0c7:00:00.0 3D controller: NVIDIA Corporation GK210GL [Tesla K80] (rev a1)
+        Subsystem: NVIDIA Corporation GK210GL [Tesla K80]
+        Flags: bus master, fast devsel, latency 0
+        Memory at 41000000 (32-bit, non-prefetchable) [size=16M]
+        Memory at 1000000000 (64-bit, prefetchable) [size=16G]
+        Memory at 1400000000 (64-bit, prefetchable) [size=32M]
+        Capabilities: [60] Power Management version 3
+        Capabilities: [68] MSI: Enable- Count=1/1 Maskable- 64bit+
+        Capabilities: [78] Express Endpoint, MSI 00
+        Capabilities: [100] Virtual Channel
+        Capabilities: [128] Power Budgeting <?>
+        Capabilities: [420] Advanced Error Reporting
+        Capabilities: [600] Vendor Specific Information: ID=0001 Rev=1 Len=024 <?>
+        Capabilities: [900] #19
+        Kernel driver in use: nvidia
+        Kernel modules: nvidia_410_drm, nvidia_410
+
