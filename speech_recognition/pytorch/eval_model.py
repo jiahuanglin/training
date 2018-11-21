@@ -155,7 +155,16 @@ def eval_model_verbose(model, test_loader, decoder, cuda, n_trials=-1):
                     
                 # Measure elapsed batch time (time per trial)
                 batch_time.update(time.time() - end)
-                write_line(outfile, "{}\n".format(batch_time.array[-1]))
+                this_wer = decoder.wer(decoded_output[0], target_strings[0])
+                this_cer = decoder.cer(decoded_output[0], target_strings[0])
+                this_wc = len(target_strings[0].split())
+                this_cc = len(target_strings[0])
+                this_pred = decoded_output[0]
+                this_true = target_strings[0]
+                write_line(outfile, "{},{},{},{},{},{},{}\n".format(batch_time.array[-1],
+                                                                 this_wc,this_cc,
+                                                                 this_wer,this_cer,
+                                                                 this_pred,this_true))
          
                 print('[{0}/{1}]\t'
                       'Unorm batch time {batch_time.val:.4f} ({batch_time.avg:.3f})'
