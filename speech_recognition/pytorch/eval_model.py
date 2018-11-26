@@ -125,7 +125,7 @@ def eval_model_verbose(model, test_loader, decoder, cuda, n_trials=-1):
         # For each batch in the test_loader, make a prediction and calculate the WER CER
         for i, (data) in enumerate(test_loader):
             if i < n_trials or n_trials == -1:
-                end = time.time()
+                # end = time.time()                   # Original timing start
                 inputs, targets, input_percentages, target_sizes = data
                 inputs = Variable(inputs, volatile=False)
                 
@@ -138,7 +138,9 @@ def eval_model_verbose(model, test_loader, decoder, cuda, n_trials=-1):
 
                 if cuda:
                     inputs = inputs.cuda()
+                end = time.time()                       # Timing start (Inference only)
                 out = model(inputs)
+                batch_time.update(time.time() - end)    # Timing end (Inference only)
                 out = out.transpose(0, 1)  # TxNxH
                 seq_length = out.size(0)
                 sizes = input_percentages.mul_(int(seq_length)).int()
@@ -154,7 +156,7 @@ def eval_model_verbose(model, test_loader, decoder, cuda, n_trials=-1):
                     char_count += len(target_strings[x])
                     
                 # Measure elapsed batch time (time per trial)
-                batch_time.update(time.time() - end)
+                #batch_time.update(time.time() - end)        # Original timing end
                 this_wer = decoder.wer(decoded_output[0], target_strings[0])
                 this_cer = decoder.cer(decoded_output[0], target_strings[0])
                 this_wc = len(target_strings[0].split())

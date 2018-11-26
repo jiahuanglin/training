@@ -70,6 +70,8 @@ if __name__ == "__main__":
     parser.add_argument('--hold_idx', default=-1, type=int)
     parser.add_argument('--stats', dest='stats', action='store_true')
     parser.add_argument('--scramble_repeat', default=-1, type=int)
+    parser.add_argument('--force_duration', default=-1, type=float)
+    parser.add_argument('--warmup', default=50, type=int)
     args = parser.parse_args()
     root = os.getcwd()		# the root is the current working directory
     filepath = osp.join(os.getcwd(),args.file)
@@ -81,7 +83,11 @@ if __name__ == "__main__":
         make_file(manifest_file)
         audio_dur = AverageMeter()
     elif args.scramble_repeat > 1:
-        manifest_file = filepath + "_scram_rep"
+        manifest_file = filepath + "_scram_rep_{}".format(args.scramble_repeat)
+        make_folder(manifest_file)
+        make_file(manifest_file)
+    elif args.force_duration > 0:
+        manifest_file = filepath + "_forced_dur_{}".format(args.force_duration)
         make_folder(manifest_file)
         make_file(manifest_file)
     else: 
@@ -101,13 +107,19 @@ if __name__ == "__main__":
             hold_entry = row[1]
         elif args.scramble_repeat > 1:
             repeat_store.append(row[0]+","+row[1])
+            
+    # This section scrambles the inputs and makes a new manifest file
+    # containing a number of repeats of the inputs. 
+    # Without considering the initial warmups, there one iteration of the
+    # manifest file will see exactly <scramble_repeat> number of the same
+    # input file.
     if args.scramble_repeat > 1:
         for i in range(args.scramble_repeat+1):
             shuffle(repeat_store)
             if i == 0:
                 # First is the warmup pad
                 for j,row in enumerate(repeat_store):
-                    if j >= 50:
+                    if j >= args.warmup:
                         break
                     write_line(manifest_file,row+"\n")
             else:
@@ -115,6 +127,10 @@ if __name__ == "__main__":
                     write_line(manifest_file,row+"\n")
             print("Rep {}".format(i))
         exit(0)
+        
+    # Here we do the other manifest functions including:
+    #     - repeating one input for the length of th entire manifest file
+    #     - making a new manifest file with the audio lengths information
     cur = 0
     f.seek(0)
     new_file = hold_entry

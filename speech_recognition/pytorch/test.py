@@ -53,6 +53,8 @@ parser.add_argument('--batch_size_val', default=-1, type=int)
 
 parser.add_argument('--n_trials', default=-1, type=int, help='limit the number of trial ran, useful when holding idx')
 
+parser.add_argument('--force_duration', default=-1, type=float)
+
 
 def to_np(x):
     return x.data.cpu().numpy()
@@ -142,9 +144,9 @@ def main():
 
     print("Testing on: {}".format(testing_manifest))
     train_dataset = SpectrogramDataset(audio_conf=audio_conf, manifest_filepath=params.val_manifest, labels=labels,
-                                       normalize=True, augment=params.augment)
+                                       normalize=True, augment=params.augment, force_duration=args.force_duration)
     test_dataset = SpectrogramDataset(audio_conf=audio_conf, manifest_filepath=testing_manifest, labels=labels,
-                                      normalize=True, augment=False)
+                                      normalize=True, augment=False, force_duration=args.force_duration)
     train_loader = AudioDataLoader(train_dataset, batch_size=params.batch_size,
                                    num_workers=1)
     test_loader = AudioDataLoader(test_dataset, batch_size=params.batch_size_val,

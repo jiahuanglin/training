@@ -12,8 +12,7 @@ from torch.utils.data import Dataset
 windows = {'hamming': scipy.signal.hamming, 'hann': scipy.signal.hann, 'blackman': scipy.signal.blackman,
            'bartlett': scipy.signal.bartlett}
 
-
-def load_audio(path):
+def load_audio(path, audio_truncation=-1):
     sound, _ = torchaudio.load(path)
     sound = sound.numpy()
     if len(sound.shape) > 1:
@@ -21,8 +20,14 @@ def load_audio(path):
             sound = sound.squeeze()
         else:
             sound = sound.mean(axis=1)  # multiple channels, average
+    if audio_truncation > 0:
+        if audio_truncation > sound.shape[0]:
+            repeats = (audio_truncation - sound.shape[0])/sound.shape[0]
+            appendage = sound
+            for i in range(repeats):
+                sound = torch.cat((sound,appendage))
+        sound = sound[0:audio_truncation]
     return sound
-
 
 class AudioParser(object):
     def parse_transcript(self, transcript_path):
@@ -80,12 +85,13 @@ class NoiseInjection(object):
 
 
 class SpectrogramParser(AudioParser):
-    def __init__(self, audio_conf, normalize=False, augment=False):
+    def __init__(self, audio_conf, normalize=False, augment=False, force_duration=-1):
         """
         Parses audio file into spectrogram with optional normalization and various augmentations
         :param audio_conf: Dictionary containing the sample rate, window and the window length/stride in seconds
         :param normalize(default False):  Apply standard mean and deviation normalization to audio tensor
         :param augment(default False):  Apply random tempo and gain perturbations
+        :param force_duration (default -1): force the duration of input audio in seconds
         """
         super(SpectrogramParser, self).__init__()
         self.window_stride = audio_conf['window_stride']
@@ -98,12 +104,13 @@ class SpectrogramParser(AudioParser):
                                             audio_conf['noise_levels']) if audio_conf.get(
             'noise_dir') is not None else None
         self.noise_prob = audio_conf.get('noise_prob')
+        self.force_frames = int(force_duration*self.sample_rate)
 
     def parse_audio(self, audio_path):
         if self.augment:
-            y = load_randomly_augmented_audio(audio_path, self.sample_rate)
+            y = load_randomly_augmented_audio(audio_path, self.sample_rate, self.force_frames)
         else:
-            y = load_audio(audio_path)
+            y = load_audio(audio_path, self.force_frames)
         if self.noiseInjector:
             add_noise = np.random.binomial(1, self.noise_prob)
             if add_noise:
@@ -131,7 +138,7 @@ class SpectrogramParser(AudioParser):
 
 
 class SpectrogramDataset(Dataset, SpectrogramParser):
-    def __init__(self, audio_conf, manifest_filepath, labels, normalize=False, augment=False):
+    def __init__(self, audio_conf, manifest_filepath, labels, normalize=False, augment=False, force_duration=-1):
         """
         Dataset that loads tensors via a csv containing file paths to audio files and transcripts separated by
         a comma. Each new line is a different sample. Example below:
@@ -144,6 +151,7 @@ class SpectrogramDataset(Dataset, SpectrogramParser):
         :param labels: String containing all the possible characters to map to
         :param normalize: Apply standard mean and deviation normalization to audio tensor
         :param augment(default False):  Apply random tempo and gain perturbations
+        :param force_duration (default -1): force the duration of input audio in seconds
         """
         with open(manifest_filepath) as f:
             ids = f.readlines()
@@ -151,7 +159,7 @@ class SpectrogramDataset(Dataset, SpectrogramParser):
         self.ids = ids
         self.size = len(ids)
         self.labels_map = dict([(labels[i], i) for i in range(len(labels))])
-        super(SpectrogramDataset, self).__init__(audio_conf, normalize, augment)
+        super(SpectrogramDataset, self).__init__(audio_conf, normalize, augment, force_duration)
 
     def __getitem__(self, index):
         sample = self.ids[index]
@@ -304,7 +312,7 @@ class AudioDataAndPathsLoader(DataLoader):
         super(AudioDataAndPathsLoader, self).__init__(*args, **kwargs)
         self.collate_fn = _collate_fn_paths
 
-def augment_audio_with_sox(path, sample_rate, tempo, gain):
+def augment_audio_with_sox(path, sample_rate, tempo, gain, force_frames):
     """
     Changes tempo and gain of the recording with sox and loads it.
     """
@@ -315,12 +323,12 @@ def augment_audio_with_sox(path, sample_rate, tempo, gain):
                                                                             augmented_filename,
                                                                             " ".join(sox_augment_params))
         os.system(sox_params)
-        y = load_audio(augmented_filename)
+        y = load_audio(augmented_filename, force_frames)
         return y
 
 
 def load_randomly_augmented_audio(path, sample_rate=16000, tempo_range=(0.85, 1.15),
-                                  gain_range=(-6, 8)):
+                                  gain_range=(-6, 8), force_frames=-1):
     """
     Picks tempo and gain uniformly, applies it to the utterance by using sox utility.
     Returns the augmented utterance.
@@ -330,5 +338,6 @@ def load_randomly_augmented_audio(path, sample_rate=16000, tempo_range=(0.85, 1.
     low_gain, high_gain = gain_range
     gain_value = np.random.uniform(low=low_gain, high=high_gain)
     audio = augment_audio_with_sox(path=path, sample_rate=sample_rate,
-                                   tempo=tempo_value, gain=gain_value)
+                                   tempo=tempo_value, gain=gain_value,
+                                   force_frames)
     return audio
