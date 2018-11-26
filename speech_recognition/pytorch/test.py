@@ -223,7 +223,8 @@ def main():
 
         wer, cer, trials = eval_model_verbose( model, test_loader, decoder, params.cuda, args.n_trials)
         root = os.getcwd()
-        outfile = osp.join(root, "inference_bs{}_i{}_gpu{}.csv".format(params.batch_size_val, args.hold_idx, params.cuda))
+        #outfile = osp.join(root, "inference_bs{}_hi{}_fd{}_gpu{}.csv".format(params.batch_size_val, args.hold_idx, args.force_duration, params.cuda))
+        outfile = osp.join(root, "fd{}_bs{}_gpu{}.csv".format(args.force_duration, params.batch_size_val, params.cuda))
         print("Exporting inference to: {}".format(outfile))
         make_file(outfile)
         write_line(outfile, "batch times pre normalized by hold_sec =,{}\n".format(args.hold_sec))

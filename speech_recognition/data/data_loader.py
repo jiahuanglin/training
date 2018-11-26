@@ -1,4 +1,5 @@
 import os
+import math
 from tempfile import NamedTemporaryFile
 
 import librosa
@@ -22,11 +23,11 @@ def load_audio(path, audio_truncation=-1):
             sound = sound.mean(axis=1)  # multiple channels, average
     if audio_truncation > 0:
         if audio_truncation > sound.shape[0]:
-            repeats = (audio_truncation - sound.shape[0])/sound.shape[0]
+            repeats = math.ceil((audio_truncation - sound.shape[0])/float(sound.shape[0]))
             appendage = sound
-            for i in range(repeats):
-                sound = torch.cat((sound,appendage))
-        sound = sound[0:audio_truncation]
+            for _ in range(int(repeats)):
+                sound = np.concatenate((sound,appendage))
+        sound = sound[:audio_truncation]
     return sound
 
 class AudioParser(object):
@@ -339,5 +340,5 @@ def load_randomly_augmented_audio(path, sample_rate=16000, tempo_range=(0.85, 1.
     gain_value = np.random.uniform(low=low_gain, high=high_gain)
     audio = augment_audio_with_sox(path=path, sample_rate=sample_rate,
                                    tempo=tempo_value, gain=gain_value,
-                                   force_frames)
+                                   force_frames=force_frames)
     return audio
