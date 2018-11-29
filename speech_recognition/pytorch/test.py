@@ -214,50 +214,35 @@ def main():
     losses = AverageMeter()
     ctc_time = AverageMeter()
 
-    for epoch in range(start_epoch, params.epochs):
+    #################################################################################################################
+    #                    The test script only really cares about this section.
+    #################################################################################################################
+    model.eval()
 
-        #################################################################################################################
-        #                    The test script only really cares about this section.
-        #################################################################################################################
-        model.eval()
+    root = os.getcwd()
+    #outfile = osp.join(root, "inference_bs{}_hi{}_fd{}_gpu{}.csv".format(params.batch_size_val, args.hold_idx, args.force_duration, params.cuda))
+    outfile = osp.join(root, "fd{}_bs{}_gpu{}.csv".format(args.force_duration, params.batch_size_val, params.cuda))
+    print("Exporting inference to: {}".format(outfile))
+    make_file(outfile)
+    output_header = ""
+    output_header += "=======================================================\n"
+    for arg in vars(args):
+        output_header += "{},=,{}\n".format(arg, getattr(args, arg))
+    output_header += "=======================================================\n"
 
-        wer, cer, trials = eval_model_verbose( model, test_loader, decoder, params.cuda, args.n_trials)
-        root = os.getcwd()
-        #outfile = osp.join(root, "inference_bs{}_hi{}_fd{}_gpu{}.csv".format(params.batch_size_val, args.hold_idx, args.force_duration, params.cuda))
-        outfile = osp.join(root, "fd{}_bs{}_gpu{}.csv".format(args.force_duration, params.batch_size_val, params.cuda))
-        print("Exporting inference to: {}".format(outfile))
-        make_file(outfile)
-        write_line(outfile, "batch times pre normalized by hold_sec =,{}\n".format(args.hold_sec))
-        write_line(outfile, "wer, {}\n".format(wer))
-        write_line(outfile, "cer, {}\n".format(cer))
-        write_line(outfile, "bs, {}\n".format(params.batch_size_val))
-        write_line(outfile, "hold_idx, {}\n".format(args.hold_idx))
-        write_line(outfile, "cuda, {}\n".format(params.cuda))
-        write_line(outfile, "avg batch time, {}\n".format(trials.avg/args.hold_sec))
-        percentile_50 = np.percentile(trials.array,50)/params.batch_size_val/args.hold_sec
-        write_line(outfile, "50%-tile latency, {}\n".format(percentile_50))
-        percentile_99 = np.percentile(trials.array,99)/params.batch_size_val/args.hold_sec
-        write_line(outfile, "99%-tile latency, {}\n".format(percentile_99))
-        write_line(outfile, "through put, {}\n".format(1/percentile_50))
-        write_line(outfile, "data\n")
-        for trial in trials.array:
-            write_line(outfile, "{}\n".format(trial/args.hold_sec))
-
-        loss_results[epoch] = avg_loss
-        wer_results[epoch] = wer
-        cer_results[epoch] = cer
-        print('Validation Summary Epoch: [{0}]\t'
-              'Average WER {wer:.3f}\t'
-              'Average CER {cer:.3f}\t'.format(
-            epoch + 1, wer=wer, cer=cer))
-
-        # anneal lr
-        optim_state = optimizer.state_dict()
-        optim_state['param_groups'][0]['lr'] = optim_state['param_groups'][0]['lr'] / params.learning_anneal
-        optimizer.load_state_dict(optim_state)
-        print('Learning rate annealed to: {lr:.6f}'.format(lr=optim_state['param_groups'][0]['lr']))
-
-        break
+    wer, cer, trials = eval_model_verbose(model, test_loader, decoder, params.cuda, outfile, item_info, args.n_trials)
+    
+    output_footer = "quality"
+    output_footer += "=======================================================\n"
+    output_footer += "best_wer,=,{}\n".format(wer)
+    output_footer += "best_cer,=,{}\n".format(cer)
+    percentile_50 = np.percentile(trials.array,50)
+    percentile_99 = np.percentile(trials.array,99)
+    output_footer += "avg_batch_latency,=,{}\n".format(trials.avg)    
+    output_footer += "50%_batch_latency,=,{}\n".format(percentile_50)
+    output_footer += "99%_batch_latency,=,{}\n".format(percentile_99)
+    output_header += "=======================================================\n" 
+    write_line(outfile, output_footer)
 
     print("=======================================================")
     print("***Best WER = ", best_wer)

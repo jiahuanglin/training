@@ -97,24 +97,11 @@ class AverageMeter(object):
         self.avg = self.sum / self.count
         self.array.append(val)
 
-def eval_model_verbose(model, test_loader, decoder, cuda, n_trials=-1):
-        # First we will create a temporary output file incase we want to get the intermidiary results
-        root = os.getcwd()
-        outfile = osp.join(root, "eval_model_verbose_out.csv")
-        print("Temp results to: {}".format(outfile))
-        make_file(outfile)
-        write_line(outfile, "batch times pre normalized by hold_sec =,{}\n".format(1))
-        write_line(outfile, "wer, {}\n".format(-1))
-        write_line(outfile, "cer, {}\n".format(-1))
-        write_line(outfile, "bs, {}\n".format(-1))
-        write_line(outfile, "hold_idx, {}\n".format(-1))
-        write_line(outfile, "cuda, {}\n".format(-1))
-        write_line(outfile, "avg batch time, {}\n".format(-1))
-        write_line(outfile, "50%-tile latency, {}\n".format(-1))
-        write_line(outfile, "99%-tile latency, {}\n".format(-1))
-        write_line(outfile, "through put, {}\n".format(-1))
+def eval_model_verbose(model, test_loader, decoder, cuda, outfile, item_info_array = [], n_trials=-1):
+        write_line(outfile, "batch_num,batch_latency,batch_sizes,batch_seq_len,\
+                                item_num,item_latency,item_duration,item_size,\
+                                word_count,char_count,word_err_count,char_err_count,pred,target\n") 
         write_line(outfile, "data\n")
-
         start_iter = 0
         total_cer, total_wer = 0, 0
         word_count, char_count = 0, 0
@@ -123,7 +110,9 @@ def eval_model_verbose(model, test_loader, decoder, cuda, n_trials=-1):
         # We allow the user to specify how many batches (trials) to run
         trials_ran = min(n_trials if n_trials!=-1 else len(test_loader), len(test_loader))
         # For each batch in the test_loader, make a prediction and calculate the WER CER
+        item_num = 1
         for i, (data) in enumerate(test_loader):
+            batch_num = i + 1
             if i < n_trials or n_trials == -1:
                 # end = time.time()                   # Original timing start
                 inputs, targets, input_percentages, target_sizes = data
@@ -149,30 +138,45 @@ def eval_model_verbose(model, test_loader, decoder, cuda, n_trials=-1):
                 # Get the LEV score and the word, char count
                 decoded_output = decoder.decode(out.data, sizes)
                 target_strings = decoder.process_strings(decoder.convert_to_strings(split_targets))
+                batch_we = batch_wc = batch_ce = batch_cc = 0;
                 for x in range(len(target_strings)):
-                    total_wer += decoder.wer(decoded_output[x], target_strings[x])
-                    total_cer += decoder.cer(decoded_output[x], target_strings[x]) 
-                    word_count += len(target_strings[x].split())
-                    char_count += len(target_strings[x])
-                    
+                    this_we = decoder.wer(decoded_output[x], target_strings[x])
+                    this_ce = decoder.cer(decoded_output[x], target_strings[x])
+                    this_wc = len(target_strings[x].split())
+                    this_cc = len(target_strings[x])
+                    this_pred = decoded_output[x]
+                    this_true = target_strings[x]
+                    if item_num > len(item_info_array):
+                        item_info = []
+                    else:
+                        item_info = item_info_array[item_num-1]
+                    item_info = item_info if len(item_info) != 0 else ["","",""]
+                    write_line(outfile, "{},{},{},{}{},{},{},{},{},{},{},{}\n"
+                               .format(batch_num,batch_time.array[-1],sizes,seq_length,
+                                       item_num,",".join(item_info),
+                                       this_wc,this_cc,
+                                       this_we,this_ce,
+                                       this_pred,this_true))
+                    item_num += 1
+                    batch_we += this_we
+                    batch_ce += this_ce
+                    batch_wc += this_wc
+                    batch_cc += this_cc
+                
                 # Measure elapsed batch time (time per trial)
                 #batch_time.update(time.time() - end)        # Original timing end
-                this_wer = decoder.wer(decoded_output[0], target_strings[0])
-                this_cer = decoder.cer(decoded_output[0], target_strings[0])
-                this_wc = len(target_strings[0].split())
-                this_cc = len(target_strings[0])
-                this_pred = decoded_output[0]
-                this_true = target_strings[0]
-                write_line(outfile, "{},{},{},{},{},{},{}\n".format(batch_time.array[-1],
-                                                                 this_wc,this_cc,
-                                                                 this_wer,this_cer,
-                                                                 this_pred,this_true))
+                total_wer += batch_we
+                total_cer += batch_ce
+                word_count += batch_wc
+                char_count += batch_cc
          
                 print('[{0}/{1}]\t'
-                      'Unorm batch time {batch_time.val:.4f} ({batch_time.avg:.3f})'
-                      '50%|99% {2:.4f} | {3:.4f}\t'.format(
-                      (i + 1), trials_ran, np.percentile(batch_time.array, 50),
-                      np.percentile(batch_time.array, 99), batch_time=batch_time))
+                      'Batch: latency (running average) {batch_time.val:.4f} ({batch_time.avg:.3f})\t'
+                      'WER {2:.1f} \t CER {3:.1f}'
+                      .format((i + 1), trials_ran,
+                              batch_we/float(batch_wc),
+                              batch_ce/float(batch_cc),
+                              batch_time=batch_time))
 
                 if cuda:
                     torch.cuda.synchronize()
