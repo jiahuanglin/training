@@ -98,8 +98,8 @@ class AverageMeter(object):
         self.array.append(val)
 
 def eval_model_verbose(model, test_loader, decoder, cuda, outfile, item_info_array = [], n_trials=-1):
-        write_line(outfile, "batch_num,batch_latency,batch_sizes,batch_seq_len,"+\
-                            "item_num,item_latency,item_duration,item_size,"+\
+        write_line(outfile, "batch_num,batch_latency,batch_duration_s,batch_seq_len,batch_size_kb,"+\
+                            "item_num,item_latency,item_duration_s,item_seq_len,item_size_kb,"+\
                             "word_count,char_count,word_err_count,char_err_count,pred,target\n") 
         write_line(outfile, "data\n")
         start_iter = 0
@@ -116,6 +116,7 @@ def eval_model_verbose(model, test_loader, decoder, cuda, outfile, item_info_arr
             if i < n_trials or n_trials == -1:
                 # end = time.time()                   # Original timing start
                 inputs, targets, input_percentages, target_sizes = data
+                meta_info = test_loader.meta
                 inputs = Variable(inputs, volatile=False)
                 
                 # unflatten targets
@@ -151,8 +152,8 @@ def eval_model_verbose(model, test_loader, decoder, cuda, outfile, item_info_arr
                     else:
                         item_info = item_info_array[item_num-1]
                     item_info = item_info if len(item_info) != 0 else ["","",""]
-                    write_line(outfile, "{},{},{},{},{},{},{},{},{},{},{},{}\n"
-                               .format(batch_num,batch_time.array[-1],sizes,seq_length,
+                    write_line(outfile, "{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n"
+                               .format(batch_num,batch_time.array[-1],target_sizes[x],seq_length,
                                        item_num,",".join(item_info),
                                        this_wc,this_cc,
                                        this_we,this_ce,

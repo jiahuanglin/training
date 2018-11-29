@@ -2,9 +2,11 @@ import os
 import math
 from tempfile import NamedTemporaryFile
 
+import sox
 import librosa
 import numpy as np
 import scipy.signal
+
 import torch
 import torchaudio
 from torch.utils.data import DataLoader
@@ -160,14 +162,29 @@ class SpectrogramDataset(Dataset, SpectrogramParser):
         self.ids = ids
         self.size = len(ids)
         self.labels_map = dict([(labels[i], i) for i in range(len(labels))])
+        self.access_history = []
+        self.max_history = 100
         super(SpectrogramDataset, self).__init__(audio_conf, normalize, augment, force_duration)
 
     def __getitem__(self, index):
         sample = self.ids[index]
+        self.access_history.append[index]
+        if len(self.access_history) > self.max_history:
+            self.access_history = self.access_history[-100-1]
         audio_path, transcript_path = sample[0], sample[1]
         spect = self.parse_audio(audio_path)
         transcript = self.parse_transcript(transcript_path)
         return spect, transcript
+    
+    def get_meta(self,index):
+        sample = self.ids[index]
+        self.access_history.append[index]
+        if len(self.access_history) > self.max_history:
+            self.access_history = self.access_history[-100-1]
+        audio_path, transcript_path = sample[0], sample[1]
+        audio_dur = sox.file_info.duration(audio_path)
+        audio_size = os.path.getsize(audio_path)/float(1000)        # returns bytes, so convert to kb
+        return audio_path, transcript_path, audio_dur, audio_size
 
     def parse_transcript(self, transcript_path):
         with open(transcript_path, 'r') as transcript_file:
@@ -294,8 +311,40 @@ class AudioDataLoader(DataLoader):
         """
         Creates a data loader for AudioDatasets.
         """
+        self.meta = []
+        self.dataset = args[0]      # epxpect the first to be the Spectro Dataset class
         super(AudioDataLoader, self).__init__(*args, **kwargs)
-        self.collate_fn = _collate_fn
+        
+        def collate_fn(batch):
+            def func(p):
+                return p[0].size(1)
+            # We want to make this collate function such that if the audio lengths are very different,
+            # we will not batch things together and instead perform a sub optimal batch
+            # this a bit involved and odd.. so we should reconsider
+            # and it will prepare meta information for users to pull if they wish
+            longest_sample = max(batch, key=func)[0]
+            freq_size = longest_sample.size(0)
+            minibatch_size = len(batch)
+            max_seqlength = longest_sample.size(1)
+            inputs = torch.zeros(minibatch_size, 1, freq_size, max_seqlength)
+            input_percentages = torch.FloatTensor(minibatch_size)
+            target_sizes = torch.IntTensor(minibatch_size)
+            targets = []
+            for x in range(minibatch_size):
+                sample = batch[x]
+                tensor = sample[0]
+                target = sample[1]
+                seq_length = tensor.size(1)
+                inputs[x][0].narrow(1, 0, seq_length).copy_(tensor)
+                input_percentages[x] = seq_length / float(max_seqlength)
+                target_sizes[x] = len(target)
+                targets.extend(target)
+            targets = torch.IntTensor(targets)
+            self.meta = []
+            for idx in self.dataset.access_history:
+                meta.append(self.dataset.get_meta(idx))
+            self.dataset.access_history = []
+            return inputs, targets, input_percentages, target_sizes
 
 class AudioDataAndLogitsLoader(DataLoader):
     def __init__(self, *args, **kwargs):

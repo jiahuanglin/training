@@ -130,7 +130,7 @@ if __name__ == "__main__":
         
     # Here we do the other manifest functions including:
     #     - repeating one input for the length of th entire manifest file
-    #     - making a new manifest file with the audio lengths information
+    #     - making a new manifest file with the audio lengths information (stats)
     cur = 0
     f.seek(0)
     new_file = hold_entry

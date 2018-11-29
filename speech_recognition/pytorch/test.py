@@ -241,6 +241,7 @@ def main():
     output_footer += "avg_batch_latency,=,{}\n".format(trials.avg)    
     output_footer += "50%_batch_latency,=,{}\n".format(percentile_50)
     output_footer += "99%_batch_latency,=,{}\n".format(percentile_99)
+    output_footer += "dataset_latency,=,{}\n".format(sum(trials.array))
     output_header += "=======================================================\n" 
     write_line(outfile, output_footer)
 
