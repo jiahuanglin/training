@@ -11,6 +11,8 @@ TARGET_ACC=23
 # ${5} = number of trial, set to -1 for no cap on number of trials
 
 # run the same hold idx for cpu, gpu and varying batch sizes
+	python test.py --cpu 0 --batch_size_val 1 --checkpoint --continue_from models/deepspeech_${1}.pth.tar --use_set ${2} --seed $RANDOM_SEED --acc $TARGET_ACC --hold_idx -1 --hold_sec 1 --n_trials ${5} --force_duration -1
+exit 1
 bs=("1" "2" "3" "4" "5" "6" "7" "8" "9" "10" "11" "12")
 fd=("0.5" "1" "2" "3" "4" "5" "6" "7" "8" "9" "10" "11" "12")
 for j in "${!fd[@]}"
@@ -21,7 +23,7 @@ do
 	fdj="${fd[$j]}"
 	echo $bsi
 	echo $fdj
-	python test.py --cpu 1 --batch_size_val ${bsi} --checkpoint --continue_from models/deepspeech_${1}.pth.tar --use_set ${2} --seed $RANDOM_SEED --acc $TARGET_ACC --hold_idx ${3} --hold_sec ${4} --n_trials ${5} --force_duration ${fdj}
+	python test.py --cpu 0 --batch_size_val ${bsi} --checkpoint --continue_from models/deepspeech_${1}.pth.tar --use_set ${2} --seed $RANDOM_SEED --acc $TARGET_ACC --hold_idx -1 --hold_sec 1 --n_trials ${5} --force_duration ${fdj}
 done
 done
 exit 1

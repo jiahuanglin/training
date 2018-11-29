@@ -230,7 +230,7 @@ def main():
         output_header += "{},=,{}\n".format(arg, getattr(args, arg))
     output_header += "=======================================================\n"
 
-    wer, cer, trials = eval_model_verbose(model, test_loader, decoder, params.cuda, outfile, item_info, args.n_trials)
+    wer, cer, trials = eval_model_verbose(model, test_loader, decoder, params.cuda, outfile, n_trials= args.n_trials)
     
     output_footer = "quality"
     output_footer += "=======================================================\n"

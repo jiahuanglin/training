@@ -98,9 +98,9 @@ class AverageMeter(object):
         self.array.append(val)
 
 def eval_model_verbose(model, test_loader, decoder, cuda, outfile, item_info_array = [], n_trials=-1):
-        write_line(outfile, "batch_num,batch_latency,batch_sizes,batch_seq_len,\
-                                item_num,item_latency,item_duration,item_size,\
-                                word_count,char_count,word_err_count,char_err_count,pred,target\n") 
+        write_line(outfile, "batch_num,batch_latency,batch_sizes,batch_seq_len,"+\
+                            "item_num,item_latency,item_duration,item_size,"+\
+                            "word_count,char_count,word_err_count,char_err_count,pred,target\n") 
         write_line(outfile, "data\n")
         start_iter = 0
         total_cer, total_wer = 0, 0
@@ -151,7 +151,7 @@ def eval_model_verbose(model, test_loader, decoder, cuda, outfile, item_info_arr
                     else:
                         item_info = item_info_array[item_num-1]
                     item_info = item_info if len(item_info) != 0 else ["","",""]
-                    write_line(outfile, "{},{},{},{}{},{},{},{},{},{},{},{}\n"
+                    write_line(outfile, "{},{},{},{},{},{},{},{},{},{},{},{}\n"
                                .format(batch_num,batch_time.array[-1],sizes,seq_length,
                                        item_num,",".join(item_info),
                                        this_wc,this_cc,
@@ -171,7 +171,7 @@ def eval_model_verbose(model, test_loader, decoder, cuda, outfile, item_info_arr
                 char_count += batch_cc
          
                 print('[{0}/{1}]\t'
-                      'Batch: latency (running average) {batch_time.val:.4f} ({batch_time.avg:.3f})\t'
+                      'Batch: latency (running average) {batch_time.val:.4f} ({batch_time.avg:.3f})\t\t'
                       'WER {2:.1f} \t CER {3:.1f}'
                       .format((i + 1), trials_ran,
                               batch_we/float(batch_wc),
