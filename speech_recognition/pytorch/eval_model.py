@@ -116,7 +116,8 @@ def eval_model_verbose(model, test_loader, decoder, cuda, outfile, item_info_arr
             if i < n_trials or n_trials == -1:
                 # end = time.time()                   # Original timing start
                 inputs, targets, input_percentages, target_sizes = data
-                meta_info = test_loader.meta
+                batch_meta = test_loader.batch_meta
+                item_meta = test_loader.item_meta
                 inputs = Variable(inputs, volatile=False)
                 
                 # unflatten targets
@@ -152,9 +153,9 @@ def eval_model_verbose(model, test_loader, decoder, cuda, outfile, item_info_arr
                     else:
                         item_info = item_info_array[item_num-1]
                     item_info = item_info if len(item_info) != 0 else ["","",""]
-                    write_line(outfile, "{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n"
-                               .format(batch_num,batch_time.array[-1],target_sizes[x],seq_length,
-                                       item_num,",".join(item_info),
+                    write_line(outfile, ",".join(["{}" for _ in range(16)])+"\n"
+                               .format(batch_num,batch_time.array[-1],batch_meta[2],batch_meta[4],batch_meta[3],
+                                       item_num,item_info[0],item_meta[x][2],item_meta[x][4],item_meta[x][3],
                                        this_wc,this_cc,
                                        this_we,this_ce,
                                        this_pred,this_true))
