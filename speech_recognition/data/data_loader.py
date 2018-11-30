@@ -161,11 +161,13 @@ class SpectrogramDataset(Dataset, SpectrogramParser):
         ids = [x.strip().split(',') for x in ids]
         self.ids = ids
         self.size = len(ids)
+        self.access_history = []
         self.labels_map = dict([(labels[i], i) for i in range(len(labels))])
         super(SpectrogramDataset, self).__init__(audio_conf, normalize, augment, force_duration)
 
     def __getitem__(self, index):
         sample = self.ids[index]
+        self.access_history.append(index)
         audio_path, transcript_path = sample[0], sample[1]
         spect = self.parse_audio(audio_path)
         transcript = self.parse_transcript(transcript_path)
@@ -305,6 +307,7 @@ class AudioDataLoader(DataLoader):
         self.item_meta = []
         self.batch_meta = []
         self.collate_fn = self.my_collate_fn
+        self.dataset = args[0]
         
     def my_collate_fn(self, batch):
         def func(p):
@@ -332,16 +335,16 @@ class AudioDataLoader(DataLoader):
             input_percentages[x] = seq_length / float(max_seqlength)
             target_sizes[x] = len(target)
             targets.extend(target)
-            print(sample[2])
-            self.item_meta.append(get_meta(sample[2]))
-            self.item_meta[-1].append(seq_length)
-            if len(self.batch_meta) == 0:
-                self.batch_meta = self.item_meta[-1]
-            else:
-                for i, meta in enumerate(self.item_meta[-1]):
-                    if i in [2,3,4]:
-                        self.batch_meta[i] += meta
+            self.item_meta.append(get_meta(self.dataset.access_history[x]))
+                self.item_meta[-1].append(seq_length)
+                if len(self.batch_meta) == 0:
+                    self.batch_meta = self.item_meta[-1]
+                else:
+                    for i, meta in enumerate(self.item_meta[-1]):
+                        if i in [2,3,4]:
+                            self.batch_meta[i] += meta
         targets = torch.IntTensor(targets)
+        self.dataset.access_history = []
         return inputs, targets, input_percentages, target_sizes
 
 class AudioDataAndLogitsLoader(DataLoader):
