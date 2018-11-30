@@ -343,7 +343,6 @@ class AudioDataLoader(DataLoader):
         self.item_meta = []
         self.batch_meta = []
         self.iter += 1
-        print(self.dataset.access_history)
         for x in range(minibatch_size):
             sample = batch[x]
             tensor = sample[0]
@@ -356,7 +355,7 @@ class AudioDataLoader(DataLoader):
             self.item_meta.append(list(self.dataset.get_meta(self.dataset.access_history[x])))
             self.item_meta[-1].append(seq_length)
             if len(self.batch_meta) == 0:
-                self.batch_meta = self.item_meta[-1]
+                self.batch_meta = self.item_meta[-1][:]
             else:
                 for i, meta in enumerate(self.item_meta[-1]):
                     if i in [2,3,4]:

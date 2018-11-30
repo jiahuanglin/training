@@ -12,7 +12,7 @@ TARGET_ACC=23
 
 # run the same hold idx for cpu, gpu and varying batch sizes
 python test.py --cpu 1 --batch_size_val 1 --checkpoint --continue_from models/deepspeech_${1}.pth.tar --use_set ${2} --seed $RANDOM_SEED --acc $TARGET_ACC --hold_idx -1 --hold_sec 1 --n_trials ${5} --force_duration -1 --batch_1_file none
-bs=("512" "12" "4" "30" "6" "50" "8" "70" "10" "140" "2")
+bs=("12" "4" "30" "6" "50" "8" "70" "10" "140" "2")
 #fd=("0.5" "1" "2" "3" "4" "5" "6" "7" "8" "9" "10" "11" "12")
 fd=("-1.0")
 for j in "${!fd[@]}"
