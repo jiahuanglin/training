@@ -343,6 +343,7 @@ class AudioDataLoader(DataLoader):
         self.item_meta = []
         self.batch_meta = []
         self.iter += 1
+        print(self.dataset.access_history)
         for x in range(minibatch_size):
             sample = batch[x]
             tensor = sample[0]

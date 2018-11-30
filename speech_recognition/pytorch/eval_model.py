@@ -154,7 +154,7 @@ def eval_model_verbose(model, test_loader, decoder, cuda, outfile, item_info_arr
                     if item_num <= len(item_info_array):
                         item_latency = item_info_array[item_num-1][0]
                     else:
-                        item_latency = "n/a"                    
+                        item_latency = "-9999"                    
                     line = ",".join(["{}" for _ in range(16)])+"\n"
                     write_line(outfile,line\
                                .format(batch_num,batch_time.array[-1],batch_meta[2],batch_meta[4],batch_meta[3],\
