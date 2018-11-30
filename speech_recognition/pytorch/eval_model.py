@@ -4,6 +4,7 @@ import sys
 sys.path.append('../')
 import json
 import time
+import itertools
 import numpy as np
 
 ### Import torch ###
@@ -97,7 +98,7 @@ class AverageMeter(object):
         self.avg = self.sum / self.count
         self.array.append(val)
 
-def eval_model_verbose(model, test_loader, decoder, cuda, outfile, item_info_array = [], n_trials=-1):
+def eval_model_verbose(model, test_loader, decoder, cuda, outfile, item_info_array = [], n_trials=-1, meta=False):
         write_line(outfile, "batch_num,batch_latency,batch_duration_s,batch_seq_len,batch_size_kb,"+\
                             "item_num,item_latency,item_duration_s,item_seq_len,item_size_kb,"+\
                             "word_count,char_count,word_err_count,char_err_count,pred,target\n") 
@@ -111,16 +112,18 @@ def eval_model_verbose(model, test_loader, decoder, cuda, outfile, item_info_arr
         trials_ran = min(n_trials if n_trials!=-1 else len(test_loader), len(test_loader))
         # For each batch in the test_loader, make a prediction and calculate the WER CER
         item_num = 1
-        for i, (data) in enumerate(test_loader):
+        for i, data in enumerate(test_loader):
             batch_num = i + 1
             if i < n_trials or n_trials == -1:
                 # end = time.time()                   # Original timing start
-                inputs, targets, input_percentages, target_sizes = data
-                meta_buffer = test_loader.pop_meta_buffer()
-                print(meta_buffer)
-                batch_meta = meta_buffer['batch']
-                item_meta = meta_buffer['item']
-                assert batch_num == meta_buffer['iter']
+                if meta:
+                    inputs, targets, input_percentages, target_sizes, batch_meta, item_meta = data
+                else:
+                    inputs, targets, input_percentages, target_sizes = data
+
+                print(batch_meta)
+                print(item_meta)
+                
                 inputs = Variable(inputs, volatile=False)
                 
                 # unflatten targets

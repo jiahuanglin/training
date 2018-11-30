@@ -151,6 +151,11 @@ def main():
                                    num_workers=1)
     test_loader = AudioDataLoader(test_dataset, batch_size=params.batch_size_val,
                                   num_workers=1)
+    
+    test_dataset_meta = SpectrogramDataset(audio_conf=audio_conf, manifest_filepath=testing_manifest, labels=labels,
+                                      normalize=True, augment=False, force_duration=args.force_duration)
+    test_loader_meta = AudioDataLoader(test_loader_meta, batch_size=params.batch_size_val,
+                                  num_workers=1,with_meta=True)
 
     rnn_type = params.rnn_type.lower()
     assert rnn_type in supported_rnns, "rnn_type should be either lstm, rnn or gru"
@@ -230,7 +235,7 @@ def main():
         output_header += "{},=,{}\n".format(arg, getattr(args, arg))
     output_header += "=======================================================\n"
 
-    wer, cer, trials = eval_model_verbose(model, test_loader, decoder, params.cuda, outfile, n_trials= args.n_trials)
+    wer, cer, trials = eval_model_verbose(model, test_loader_meta, decoder, params.cuda, outfile, n_trials= args.n_trials, meta=True)
     
     output_footer = "quality"
     output_footer += "=======================================================\n"
