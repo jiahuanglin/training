@@ -290,7 +290,7 @@ def _collate_fn(batch):
     targets = torch.IntTensor(targets)
     return inputs, targets, input_percentages, target_sizes
 
-def get_meta(self,sample):
+def get_meta(sample):
     audio_path, transcript_path = sample[0], sample[1]
     audio_dur = sox.file_info.duration(audio_path)
     audio_size = os.path.getsize(audio_path)/float(1000)        # returns bytes, so convert to kb
@@ -304,8 +304,9 @@ class AudioDataLoader(DataLoader):
         super(AudioDataLoader, self).__init__(*args, **kwargs)
         self.item_meta = []
         self.batch_meta = []
+        self.collate_fn = self.my_collate_fn
         
-    def collate_fn(batch):
+    def my_collate_fn(self, batch):
         def func(p):
             return p[0].size(1)
         # We want to make this collate function such that if the audio lengths are very different,
@@ -331,7 +332,8 @@ class AudioDataLoader(DataLoader):
             input_percentages[x] = seq_length / float(max_seqlength)
             target_sizes[x] = len(target)
             targets.extend(target)
-            self.item_meta.append(get_meta(sample))
+            print(sample[2])
+            self.item_meta.append(get_meta(sample[2]))
             self.item_meta[-1].append(seq_length)
             if len(self.batch_meta) == 0:
                 self.batch_meta = self.item_meta[-1]
