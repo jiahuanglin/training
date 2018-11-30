@@ -4,7 +4,6 @@ import sys
 sys.path.append('../')
 import json
 import time
-import itertools
 import numpy as np
 
 ### Import torch ###
@@ -121,8 +120,6 @@ def eval_model_verbose(model, test_loader, decoder, cuda, outfile, item_info_arr
                 else:
                     inputs, targets, input_percentages, target_sizes = data
 
-                print(batch_meta)
-                print(item_meta)
                 
                 inputs = Variable(inputs, volatile=False)
                 
@@ -154,16 +151,16 @@ def eval_model_verbose(model, test_loader, decoder, cuda, outfile, item_info_arr
                     this_cc = len(target_strings[x])
                     this_pred = decoded_output[x]
                     this_true = target_strings[x]
-                    if x < len(item_info_array):
-                        item_latency = item_info_array[x][0]
+                    if item_num <= len(item_info_array):
+                        item_latency = item_info_array[item_num-1][0]
                     else:
-                        item_latency = ""                    
-                    import pdb; pdb.set_trace()
-                    write_line(outfile, ",".join(["{}" for _ in range(16)])+"\n"
-                               .format(batch_num,batch_time.array[-1],batch_meta[2],batch_meta[4],batch_meta[3],
-                                       item_num,item_latency,item_meta[x][2],item_meta[x][4],item_meta[x][3],
-                                       this_wc,this_cc,
-                                       this_we,this_ce,
+                        item_latency = "n/a"                    
+                    line = ",".join(["{}" for _ in range(16)])+"\n"
+                    write_line(outfile,line\
+                               .format(batch_num,batch_time.array[-1],batch_meta[2],batch_meta[4],batch_meta[3],\
+                                       item_num,item_latency,item_meta[x][2],item_meta[x][4],item_meta[x][3],\
+                                       this_wc,this_cc,\
+                                       this_we,this_ce,\
                                        this_pred,this_true))
                     item_num += 1
                     batch_we += this_we
@@ -191,7 +188,7 @@ def eval_model_verbose(model, test_loader, decoder, cuda, outfile, item_info_arr
                 del out
             else:
                 break
-                
+        write_line(outfile, "end\n")        
         # WER, CER
         wer = total_wer  / float(word_count)
         cer = total_cer / float(char_count)

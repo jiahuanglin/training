@@ -1,3 +1,4 @@
+import csv
 import argparse
 import errno
 import json
@@ -34,26 +35,17 @@ parser.add_argument('--save_folder', default='models/', help='Location to save e
 parser.add_argument('--model_path', default='models/deepspeech_final.pth.tar',
                     help='Location to save best validation model')
 parser.add_argument('--continue_from', default='', help='Continue from checkpoint model')
-
 parser.add_argument('--seed', default=0xdeadbeef, type=int, help='Random Seed')
-
 parser.add_argument('--acc', default=23.0, type=float, help='Target WER')
-
 parser.add_argument('--start_epoch', default=-1, type=int, help='Number of epochs at which to start from')
-
 parser.add_argument('--use_set', default="libri", help='ov = OpenVoice test set, libri = Librispeech val set')
-
 parser.add_argument('--cpu', default=0, type=int)
-
 parser.add_argument('--hold_idx', default=-1, type=int, help='input idx to hold the test dataset at')
-
 parser.add_argument('--hold_sec', default=1, type=float)
-
 parser.add_argument('--batch_size_val', default=-1, type=int)
-
 parser.add_argument('--n_trials', default=-1, type=int, help='limit the number of trial ran, useful when holding idx')
-
 parser.add_argument('--force_duration', default=-1, type=float)
+parser.add_argument('--batch_1_file', default="")
 
 
 def to_np(x):
@@ -154,7 +146,7 @@ def main():
     
     test_dataset_meta = SpectrogramDataset(audio_conf=audio_conf, manifest_filepath=testing_manifest, labels=labels,
                                       normalize=True, augment=False, force_duration=args.force_duration)
-    test_loader_meta = AudioDataLoader(test_loader_meta, batch_size=params.batch_size_val,
+    test_loader_meta = AudioDataLoader(test_dataset_meta, batch_size=params.batch_size_val,
                                   num_workers=1,with_meta=True)
 
     rnn_type = params.rnn_type.lower()
@@ -222,6 +214,28 @@ def main():
     #################################################################################################################
     #                    The test script only really cares about this section.
     #################################################################################################################
+    def reset(f): {f.seek(0)}
+    # First, we will extract the batch_1_info from the list of files
+    if args.batch_1_file != "" and args.batch_1_file != "none":
+        pwd = os.getcwd()
+        batch_1_file = open(osp.join(pwd,args.batch_1_file))
+        batch_1_data = csv.reader(batch_1_file,delimiter=',')
+        batch_1_len = len(list(batch_1_data))
+
+        reset(batch_1_file)
+        start = False
+        batch_1_info_array = []
+        for row in batch_1_data:
+            if row[0] == 'data':
+                start = True
+            elif row[0] == 'end':
+                break
+            elif start:
+                info = [row[1]]
+                batch_1_info_array.append(info)
+    else:
+        batch_1_info_array = []
+
     model.eval()
 
     root = os.getcwd()
@@ -235,10 +249,10 @@ def main():
         output_header += "{},=,{}\n".format(arg, getattr(args, arg))
     output_header += "=======================================================\n"
 
-    wer, cer, trials = eval_model_verbose(model, test_loader_meta, decoder, params.cuda, outfile, n_trials= args.n_trials, meta=True)
+    wer, cer, trials = eval_model_verbose(model, test_loader_meta, decoder, params.cuda, outfile, batch_1_info_array, n_trials= args.n_trials, meta=True)
     
-    output_footer = "quality"
-    output_footer += "=======================================================\n"
+    output_footer = "=======================================================\n"
+    output_footer += "quality"
     output_footer += "best_wer,=,{}\n".format(wer)
     output_footer += "best_cer,=,{}\n".format(cer)
     percentile_50 = np.percentile(trials.array,50)

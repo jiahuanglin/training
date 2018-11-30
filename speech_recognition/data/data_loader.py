@@ -305,6 +305,11 @@ class AudioDataLoader(DataLoader):
         """
         Creates a data loader for AudioDatasets.
         """
+        if 'with_meta'in kwargs and kwargs['with_meta']:
+            self.with_meta = True
+        else:
+            self.with_meta = False
+        kwargs.pop('with_meta', None)
         super(AudioDataLoader, self).__init__(*args, **kwargs)
         self.item_meta = []
         self.batch_meta = []
@@ -312,10 +317,6 @@ class AudioDataLoader(DataLoader):
         self.iter = 0
         self.collate_fn = self.my_collate_fn
         self.dataset = args[0]
-        if 'with_meta'in kwargs and kwargs['with_meta']:
-            self.with_meta = True
-        else:
-            self.with_meta = False
 
     def pop_meta_buffer(self):
         timeout = 0
@@ -362,9 +363,9 @@ class AudioDataLoader(DataLoader):
         targets = torch.IntTensor(targets)
         self.dataset.access_history = []
         if self.with_meta:
-            return inputs, targets, input_percentages, target_sizes
-        else:
             return inputs, targets, input_percentages, target_sizes, self.batch_meta, self.item_meta
+        else:
+            return inputs, targets, input_percentages, target_sizes
 
 class AudioDataAndLogitsLoader(DataLoader):
     def __init__(self, *args, **kwargs):
