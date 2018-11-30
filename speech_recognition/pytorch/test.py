@@ -243,11 +243,11 @@ def main():
     outfile = osp.join(root, "fd{}_bs{}_gpu{}.csv".format(args.force_duration, params.batch_size_val, params.cuda))
     print("Exporting inference to: {}".format(outfile))
     make_file(outfile)
-    output_header = ""
-    output_header += "=======================================================\n"
+    output_header = "=======================================================\n"
     for arg in vars(args):
         output_header += "{},=,{}\n".format(arg, getattr(args, arg))
     output_header += "=======================================================\n"
+    write_line(outfile, output_header)
 
     wer, cer, trials = eval_model_verbose(model, test_loader_meta, decoder, params.cuda, outfile, batch_1_info_array, n_trials= args.n_trials, meta=True)
     
