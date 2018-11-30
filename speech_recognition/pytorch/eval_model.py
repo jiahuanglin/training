@@ -116,8 +116,11 @@ def eval_model_verbose(model, test_loader, decoder, cuda, outfile, item_info_arr
             if i < n_trials or n_trials == -1:
                 # end = time.time()                   # Original timing start
                 inputs, targets, input_percentages, target_sizes = data
-                batch_meta = test_loader.batch_meta
-                item_meta = test_loader.item_meta
+                meta_buffer = test_loader.pop_meta_buffer()
+                print(meta_buffer)
+                batch_meta = meta_buffer['batch']
+                item_meta = meta_buffer['item']
+                assert batch_num == meta_buffer['iter']
                 inputs = Variable(inputs, volatile=False)
                 
                 # unflatten targets
@@ -148,14 +151,14 @@ def eval_model_verbose(model, test_loader, decoder, cuda, outfile, item_info_arr
                     this_cc = len(target_strings[x])
                     this_pred = decoded_output[x]
                     this_true = target_strings[x]
-                    if item_num > len(item_info_array):
-                        item_info = []
+                    if x < len(item_info_array):
+                        item_latency = item_info_array[x][0]
                     else:
-                        item_info = item_info_array[item_num-1]
-                    item_info = item_info if len(item_info) != 0 else ["","",""]
+                        item_latency = ""                    
+                    import pdb; pdb.set_trace()
                     write_line(outfile, ",".join(["{}" for _ in range(16)])+"\n"
                                .format(batch_num,batch_time.array[-1],batch_meta[2],batch_meta[4],batch_meta[3],
-                                       item_num,item_info[0],item_meta[x][2],item_meta[x][4],item_meta[x][3],
+                                       item_num,item_latency,item_meta[x][2],item_meta[x][4],item_meta[x][3],
                                        this_wc,this_cc,
                                        this_we,this_ce,
                                        this_pred,this_true))

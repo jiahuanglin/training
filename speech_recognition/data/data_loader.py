@@ -1,4 +1,5 @@
 import os
+import time
 import math
 from tempfile import NamedTemporaryFile
 
@@ -173,6 +174,13 @@ class SpectrogramDataset(Dataset, SpectrogramParser):
         transcript = self.parse_transcript(transcript_path)
         return spect, transcript
 
+    def get_meta(self, index):
+        sample = self.ids[index]
+        audio_path, transcript_path = sample[0], sample[1]
+        audio_dur = sox.file_info.duration(audio_path)
+        audio_size = os.path.getsize(audio_path)/float(1000)        # returns bytes, so convert to kb
+        return audio_path, transcript_path, audio_dur, audio_size
+
     def parse_transcript(self, transcript_path):
         with open(transcript_path, 'r') as transcript_file:
             transcript = transcript_file.read().replace('\n', '')
@@ -292,12 +300,6 @@ def _collate_fn(batch):
     targets = torch.IntTensor(targets)
     return inputs, targets, input_percentages, target_sizes
 
-def get_meta(sample):
-    audio_path, transcript_path = sample[0], sample[1]
-    audio_dur = sox.file_info.duration(audio_path)
-    audio_size = os.path.getsize(audio_path)/float(1000)        # returns bytes, so convert to kb
-    return audio_path, transcript_path, audio_dur, audio_size
-
 class AudioDataLoader(DataLoader):
     def __init__(self, *args, **kwargs):
         """
@@ -306,9 +308,18 @@ class AudioDataLoader(DataLoader):
         super(AudioDataLoader, self).__init__(*args, **kwargs)
         self.item_meta = []
         self.batch_meta = []
+        self.meta_buffer = []
+        self.iter = 0
         self.collate_fn = self.my_collate_fn
         self.dataset = args[0]
-        
+
+    def pop_meta_buffer(self):
+        timeout = 0
+        while len(self.meta_buffer) == 0 and timeout < 5:
+            time.sleep(0.01)
+            timeout+=0.01
+        return self.meta_buffer.pop(0)
+
     def my_collate_fn(self, batch):
         def func(p):
             return p[0].size(1)
@@ -326,6 +337,7 @@ class AudioDataLoader(DataLoader):
         targets = []
         self.item_meta = []
         self.batch_meta = []
+        self.iter += 1
         for x in range(minibatch_size):
             sample = batch[x]
             tensor = sample[0]
@@ -335,15 +347,17 @@ class AudioDataLoader(DataLoader):
             input_percentages[x] = seq_length / float(max_seqlength)
             target_sizes[x] = len(target)
             targets.extend(target)
-            self.item_meta.append(get_meta(self.dataset.access_history[x]))
-                self.item_meta[-1].append(seq_length)
-                if len(self.batch_meta) == 0:
-                    self.batch_meta = self.item_meta[-1]
-                else:
-                    for i, meta in enumerate(self.item_meta[-1]):
-                        if i in [2,3,4]:
-                            self.batch_meta[i] += meta
+            self.item_meta.append(list(self.dataset.get_meta(self.dataset.access_history[x])))
+            self.item_meta[-1].append(seq_length)
+            if len(self.batch_meta) == 0:
+                self.batch_meta = self.item_meta[-1]
+            else:
+                for i, meta in enumerate(self.item_meta[-1]):
+                    if i in [2,3,4]:
+                        self.batch_meta[i] += meta
         targets = torch.IntTensor(targets)
+        self.meta_buffer.append({'iter': self.iter, 'item': self.item_meta, 'batch': self.batch_meta})
+        print(len(self.meta_buffer))
         self.dataset.access_history = []
         return inputs, targets, input_percentages, target_sizes
 
