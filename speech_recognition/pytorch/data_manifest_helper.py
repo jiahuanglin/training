@@ -70,6 +70,7 @@ if __name__ == "__main__":
     parser.add_argument('--hold_idx', default=-1, type=int)
     parser.add_argument('--stats', dest='stats', action='store_true')
     parser.add_argument('--scramble_repeat', default=-1, type=int)
+    parser.add_argument('--just_repeat', dest='just_repeat', action='store_true')
     parser.add_argument('--force_duration', default=-1, type=float)
     parser.add_argument('--warmup', default=50, type=int)
     args = parser.parse_args()
@@ -115,7 +116,8 @@ if __name__ == "__main__":
     # input file.
     if args.scramble_repeat > 1:
         for i in range(args.scramble_repeat+1):
-            shuffle(repeat_store)
+            if not args.just_repeat:
+                shuffle(repeat_store)
             if i == 0:
                 # First is the warmup pad
                 for j,row in enumerate(repeat_store):
