@@ -313,17 +313,9 @@ class AudioDataLoader(DataLoader):
         super(AudioDataLoader, self).__init__(*args, **kwargs)
         self.item_meta = []
         self.batch_meta = []
-        self.meta_buffer = []
         self.iter = 0
         self.collate_fn = self.my_collate_fn
         self.dataset = args[0]
-
-    def pop_meta_buffer(self):
-        timeout = 0
-        while len(self.meta_buffer) == 0 and timeout < 5:
-            time.sleep(0.01)
-            timeout+=0.01
-        return self.meta_buffer.pop(0)
 
     def my_collate_fn(self, batch):
         def func(p):
