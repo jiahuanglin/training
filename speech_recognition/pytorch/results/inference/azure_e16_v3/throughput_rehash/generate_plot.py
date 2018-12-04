@@ -72,7 +72,7 @@ if __name__ == "__main__":
     
     # file name format = "fd{}_bs_{}_gpu{}.csv"
     batch_sizes = [2,4,6,8,10,12,16,24,32,64,128]
-    trials = [1, 2, 3, 4]
+    trials = [1, 2, 3, 4, 5, 6]
     num_warmups = 0 
     
     
