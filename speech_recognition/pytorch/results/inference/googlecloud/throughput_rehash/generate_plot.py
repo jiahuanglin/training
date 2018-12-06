@@ -71,8 +71,8 @@ if __name__ == "__main__":
         return header, idxof, data, footer # meta and data
     
     # file name format = "fd{}_bs_{}_gpu{}.csv"
-    batch_sizes = [1,2,4,6,8,10,12,16,24,32,64,128]
-    trials = [1, 2, 3, 4, 5, 6, 7, 8]
+    batch_sizes = [1] #[,2,4,6,8,10,12,16,24,32,64,128]
+    trials = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
     num_warmups = 0 
     
     
@@ -134,7 +134,7 @@ if __name__ == "__main__":
     for i, bound in enumerate(slowdowns_bound):
         ax.errorbar(bound,slowdowns_bounded_throughputs[i],xerr=slowdowns_bounded_throughputs_xerr[i],yerr=slowdowns_bounded_throughputs_yerr[i],color='k')
     z = np.polyfit(slowdowns_bound[:], slowdowns_bounded_throughputs[:], 6)
-    plt.title('Azure E16_v3: Librispeech Test Clean Workload Performance (normalized by batch 1 latency)')
+    plt.title('Google Cloud: Librispeech Test Clean Workload Performance (normalized by batch 1 latency)')
     ax.set_xlabel('Slowdown from batch 1 = 1- (batch 1 latency / batch latency) [sec/sec]')
     ax.set_ylabel('Throughput = audio duration of batch / batch latency [sec/sec]')
     print('Showing plot')
@@ -180,7 +180,7 @@ if __name__ == "__main__":
     print('Plot error bars')
     for idx in data:
         ax.errorbar(idx,data[idx]['mean'],yerr=data[idx]['stddev'])
-    plt.title('Azure E16_v3: Scatter plot of inference trials and variances of Librispeech Test Clean inputs')
+    plt.title('Google Cloud: Scatter plot of inference trials and variances of Librispeech Test Clean inputs')
     plt.xlabel('Idx of input')
     plt.ylabel('Latency of inference trials [sec]')
     print('Showing plot (takes a while and blocks)')
@@ -193,7 +193,7 @@ if __name__ == "__main__":
     print('Plot realtime speedup')
     for idx in data:
         ax.plot(idx, data[idx]['dur']/data[idx]['mean'], marker='o', c='g')
-    plt.title('Azure E16_v3: Normalized mean performance plot Librispeech Test Clean inputs')
+    plt.title('Google Cloud: Normalized mean performance plot Librispeech Test Clean inputs')
     plt.xlabel('Idx of input')
     plt.ylabel('Real-time speed up = Input duration / mean Latency of inference trials [sec/sec]')
     print('Showing plot')
@@ -205,7 +205,7 @@ if __name__ == "__main__":
     print('Plot realtime speedup')
     for idx in data:
         ax.plot(data[idx]['dur'], data[idx]['dur']/data[idx]['mean'], marker='o', c='g')
-    plt.title('Azure E16_v3: Normalized mean performance plot Librispeech Test Clean inputs')
+    plt.title('Google Cloud: Normalized mean performance plot Librispeech Test Clean inputs')
     plt.xlabel('Input duration [sec]')
     plt.ylabel('Real-time speed up = Input duration / mean Latency of inference trials [sec/sec]')
     print('Showing plot')
@@ -223,7 +223,7 @@ if __name__ == "__main__":
     ax2.plot(bin_edges[1:],cdf)
     plt.xlabel('Latency bound [sec]')
     plt.ylabel('% of samples')
-    plt.title('Azure E16_v3: % of batch size 1 inputs from Librispeech Test Clean satisfying a latency bound')
+    plt.title('Google Cloud: % of batch size 1 inputs from Librispeech Test Clean satisfying a latency bound')
     plt.xticks(bin_edges,rotation=90)
     plt.yticks(cdf[::10], np.round(cdf/cdf[-1],2)[::10])
     plt.axhline(y=0.99*cdf[-1],xmin=0,xmax=bin_edges[-1],c='k')
